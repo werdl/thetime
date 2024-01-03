@@ -1,15 +1,15 @@
 pub mod system;
 pub mod ntp;
 
-use system::System;
-use ntp::Ntp;
+pub use system::*;
+pub use ntp::*;
 
-trait Time {
+pub trait Time {
     /// Get current time, returning the relevent struct
     /// 
     /// # Examples
     /// ```rust
-    /// use thetime::{System, Ntp};
+    /// use thetime::{System, Ntp, Time};
     /// println!("{} says the system, but {} says the server", System::now(), Ntp::now());
     /// ```
     fn now() -> Self;
@@ -18,7 +18,7 @@ trait Time {
     /// 
     /// # Examples
     /// ```rust
-    /// use thetime::{System, Ntp};
+    /// use thetime::{System, Ntp, Time};
     /// println!("{} seconds since Unix epoch", System::now().unix());
     /// println!("{} seconds since Unix epoch from pool.ntp.org", Ntp::now().unix());
     /// ```
@@ -28,7 +28,7 @@ trait Time {
     /// 
     /// # Examples
     /// ```rust
-    /// use thetime::{System, Ntp};
+    /// use thetime::{System, Ntp, Time};
     /// println!("{} milliseconds since Unix epoch", System::now().unix_ms());
     /// println!("{} milliseconds since Unix epoch from pool.ntp.org", Ntp::now().unix_ms());
     /// ```
@@ -38,7 +38,7 @@ trait Time {
     /// 
     /// # Examples
     /// ```rust
-    /// use thetime::{System, Ntp};
+    /// use thetime::{System, Ntp, Time};
     /// println!("{}", System::now().strftime("%Y-%m-%d %H:%M:%S"));
     /// println!("{}", Ntp::now().strftime("%Y-%B-%d %H:%M:%S"));
     /// ```
