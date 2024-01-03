@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "A simple Rust library for dealing with the time, both NTP and System."
-repository = "github.com/werdl/thetime"
-documentation = "docs.rs/thetime"
+repository = "https://github.com/werdl/thetime"
+documentation = "https://docs.rs/thetime"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
