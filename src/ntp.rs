@@ -1,8 +1,7 @@
 use std::net::UdpSocket;
 use core::fmt::Display;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use chrono::{DateTime, Local};
-use chrono::TimeZone;
+use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone, Local};
 
 use crate::Time;
 
@@ -44,6 +43,25 @@ impl Time for Ntp {
     }
     fn unix_ms(&self) -> f64 {
         self.inner as f64
+    }
+
+    fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self {
+        let s = s.to_string();
+        let format = format.to_string();
+        let temp = DateTime::parse_from_str(&s, &format);
+        let x = match temp {
+            Err(_) => {
+                if !format.contains("%z") {
+                    return Self::strptime(s + " +0000", format + "%z");
+                }
+                panic!("Bad format string");
+            }
+            Ok(dt) => dt,
+        };
+        Ntp {
+            inner: x.timestamp_millis() as u64,
+            server: "strptime".to_string(),
+        }
     }
 
     fn strftime(&self, format: &str) -> String {

@@ -11,3 +11,4 @@ documentation = "https://docs.rs/thetime"
 
 [dependencies]
 chrono = "0.4.31"
+time = "0.3.31"

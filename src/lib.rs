@@ -4,6 +4,8 @@ pub mod ntp;
 pub use system::*;
 pub use ntp::*;
 
+extern crate time;
+
 pub trait Time {
     /// Get current time, returning the relevent struct
     /// 
@@ -13,6 +15,8 @@ pub trait Time {
     /// println!("{} says the system, but {} says the server", System::now(), Ntp::now());
     /// ```
     fn now() -> Self;
+
+    fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self;
 
     /// Get the time in seconds since Unix epoch
     /// 
@@ -63,5 +67,13 @@ mod test {
         let x = Ntp::now();
         println!("{}", x.unix_ms());
         println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
+    }
+
+    #[test] 
+    fn strptime() {
+        let x = System::strptime("2015-02-18 23:16:09", "%Y-%m-%d %H:%M:%S");
+        println!("2015 - {}", x);
+        let x = Ntp::strptime("2021-01-01 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z");
+        println!("2021 - {}", x);
     }
 }

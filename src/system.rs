@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 use core::fmt::Display;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone, Local};
 use crate::Time;
 
 /// System time, as grabbed from the system (obviously)
@@ -22,13 +22,31 @@ impl Time for System {
             inner: SystemTime::now()
         }
     }
-    
+
+    fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self {
+        let s = s.to_string();
+        let format = format.to_string();
+        let temp = DateTime::parse_from_str(&s, &format);
+        let x = match temp {
+            Err(_) => {
+                if !format.contains("%z") {
+                    return Self::strptime(s + " +0000", format + "%z");
+                }
+                panic!("Bad format string");
+            }
+            Ok(dt) => dt,
+        };
+        System {
+            inner: x.into()
+        }
+    }
+
     fn unix(&self) -> u64 {
-        SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
+        self.inner.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
     }
 
     fn unix_ms(&self) -> f64 {
-        SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() as f64
+        self.inner.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() as f64
     }
     
     fn strftime(&self, format: &str) -> String {
