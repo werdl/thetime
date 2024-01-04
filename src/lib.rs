@@ -6,6 +6,7 @@ pub use ntp::*;
 
 extern crate time;
 
+/// Implements the core functionality of the library
 pub trait Time {
     /// Get current time, returning the relevent struct
     /// 
@@ -16,6 +17,14 @@ pub trait Time {
     /// ```
     fn now() -> Self;
 
+
+    /// Parse a string into a time struct
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("The time was {}", System::strptime("2015-01-18 23:16:09", "%Y-%m-%d %H:%M:%S"));
+    /// ```
     fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self;
 
     /// Get the time in seconds since Unix epoch
@@ -49,6 +58,50 @@ pub trait Time {
     fn strftime(&self, format: &str) -> String;
 }
 
+/// Implements the diff functions (optional)
+pub trait TimeDiff {
+    /// Get the difference between two times in seconds
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, TimeDiff};
+    /// let x = System::now();
+    /// let y = Ntp::now();
+    /// println!("{} seconds difference", x.diff(&y));
+    /// ```
+    fn diff<T: Time>(&self, other: &T) -> f64;
+
+    /// Get the difference between two times in milliseconds
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, TimeDiff};
+    /// let x = System::now();
+    /// let y = Ntp::now();
+    /// println!("{} milliseconds difference", x.diff_ms(&y));
+    /// ```
+    fn diff_ms<T: Time>(&self, other: &T) -> f64;
+}
+
+/// Provides wrappers on std types to parse into time structs
+pub trait StrTime {
+    /// Parse a string into a time struct of choice
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, StrTime};
+    /// println!("2017 - {}", "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S"));
+    fn parse_time<T: Time>(&self, format: &str) -> T 
+    where Self: std::fmt::Display
+    {
+        T::strptime(self, format)
+    }
+}
+
+impl StrTime for str {}
+impl StrTime for String {}
+
+#[cfg(test)]
 mod test {
     use super::*;
     #[test]
@@ -75,5 +128,18 @@ mod test {
         println!("2015 - {}", x);
         let x = Ntp::strptime("2021-01-01 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z");
         println!("2021 - {}", x);
+    }
+
+    #[test] 
+    fn str_time() {
+        println!("2017 - {}", "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S"));
+    }
+
+    #[test]
+    fn time_diff() {
+        let x = System::now();
+        let y = Ntp::now();
+        println!("{} seconds difference", x.diff(&y));
+        println!("{} milliseconds difference", x.diff_ms(&y));
     }
 }

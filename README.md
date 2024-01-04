@@ -1,6 +1,6 @@
 # thetime
 ## Simple Rust library for time
-- builds on top of std and chrono
+- builds on top of std, chrono and time
 - very simple and intuitive to use
 ## Examples
 ```rust

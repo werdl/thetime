@@ -1,15 +1,16 @@
 use std::net::UdpSocket;
 use core::fmt::Display;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone, Local};
+use chrono::{DateTime, TimeZone, Local};
 
-use crate::Time;
+use crate::{Time, TimeDiff};
 
 const REF_TIME_1970: u32 = 2208988800; // Reference time
 
 /// NTP time
 /// 
 /// `inner` is milliseconds since Unix epoch, by default UTC, and `server` is the NTP server address that the time was fetched from.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ntp {
     inner: u64,
     server: String,
@@ -31,6 +32,16 @@ impl Ntp {
             server: self.server.clone(),
         }
         
+    }
+}
+
+impl TimeDiff for Ntp {
+    fn diff<T: Time>(&self, other: &T) -> f64 {
+        (self.unix() - other.unix()) as f64
+    }
+
+    fn diff_ms<T: Time>(&self, other: &T) -> f64 {
+        (self.unix_ms() - other.unix_ms()) as f64
     }
 }
 

@@ -1,11 +1,12 @@
 use std::time::SystemTime;
 use core::fmt::Display;
-use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone, Local};
-use crate::Time;
+use chrono::{DateTime, Local};
+use crate::{Time, TimeDiff};
 
 /// System time, as grabbed from the system (obviously)
 /// 
 /// `inner` is the time as a SystemTime struct, from `std::time`
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct System {
     inner: SystemTime,
 }
@@ -13,6 +14,16 @@ pub struct System {
 impl Display for System {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.unix())
+    }
+}
+
+impl TimeDiff for System {
+    fn diff<T: Time>(&self, other: &T) -> f64 {
+        (self.unix() - other.unix()) as f64
+    }
+
+    fn diff_ms<T: Time>(&self, other: &T) -> f64 {
+        (self.unix_ms() - other.unix_ms()) as f64
     }
 }
 
