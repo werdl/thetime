@@ -1,14 +1,14 @@
-use std::net::UdpSocket;
+use chrono::{DateTime, Local, TimeZone};
 use core::fmt::Display;
+use std::net::UdpSocket;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use chrono::{DateTime, TimeZone, Local};
 
 use crate::{Time, TimeDiff};
 
 const REF_TIME_1970: u32 = 2208988800; // Reference time
 
 /// NTP time
-/// 
+///
 /// `inner` is milliseconds since Unix epoch, by default UTC, and `server` is the NTP server address that the time was fetched from. Note that `server` cannot be relied upon to be a valid server, as it may be `strptime` or similar.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ntp {
@@ -28,10 +28,12 @@ impl Ntp {
         let seconds = self.inner / 1000;
         let nanoseconds = (self.inner % 1000) * 1_000_000;
         Ntp {
-            inner: Local.timestamp_opt(seconds as i64, nanoseconds as u32).unwrap().timestamp_millis() as u64,
+            inner: Local
+                .timestamp_opt(seconds as i64, nanoseconds as u32)
+                .unwrap()
+                .timestamp_millis() as u64,
             server: self.server.clone(),
         }
-        
     }
 }
 
@@ -78,8 +80,7 @@ impl Time for Ntp {
     fn strftime(&self, format: &str) -> String {
         let x = UNIX_EPOCH + Duration::from_millis(self.inner);
         let x: DateTime<Local> = DateTime::from(x);
-        x.format(format)
-            .to_string()
+        x.format(format).to_string()
     }
 }
 
@@ -98,17 +99,15 @@ fn new<T: ToString>(server_addr: T) -> Result<Ntp, Box<dyn std::error::Error>> {
     let (size, _) = client.recv_from(&mut buffer)?;
 
     if size > 0 {
-        let t = u32::from_be_bytes([
-            buffer[40], buffer[41], buffer[42], buffer[43],
-        ]) as u64;
+        let t = u32::from_be_bytes([buffer[40], buffer[41], buffer[42], buffer[43]]) as u64;
         let t = t - u64::from(REF_TIME_1970);
 
         let elapsed_time = start_time.elapsed()?;
         let milliseconds = elapsed_time.as_secs() * 1000 + u64::from(elapsed_time.subsec_millis());
 
-        return Ok(Ntp{
+        return Ok(Ntp {
             server: server.to_string(),
-            inner: t * 1000 + milliseconds
+            inner: t * 1000 + milliseconds,
         });
     }
 

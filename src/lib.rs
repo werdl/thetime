@@ -1,8 +1,8 @@
-pub mod system;
 pub mod ntp;
+pub mod system;
 
-pub use system::*;
 pub use ntp::*;
+pub use system::*;
 
 extern crate time;
 
@@ -13,7 +13,7 @@ pub fn now() -> u64 {
 /// Implements the core functionality of the library
 pub trait Time {
     /// Get current time, returning the relevent struct
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time};
@@ -21,9 +21,8 @@ pub trait Time {
     /// ```
     fn now() -> Self;
 
-
     /// Parse a string into a time struct
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time};
@@ -32,7 +31,7 @@ pub trait Time {
     fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self;
 
     /// Get the time in seconds since Unix epoch
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time};
@@ -42,7 +41,7 @@ pub trait Time {
     fn unix(&self) -> u64;
 
     /// Get the time in milliseconds since Unix epoch
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time};
@@ -52,7 +51,7 @@ pub trait Time {
     fn unix_ms(&self) -> f64;
 
     /// Format the time according to the given format string
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time};
@@ -65,7 +64,7 @@ pub trait Time {
 /// Implements the diff functions (optional)
 pub trait TimeDiff {
     /// Get the difference between two times in seconds
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, TimeDiff, StrTime};
@@ -76,7 +75,7 @@ pub trait TimeDiff {
     fn diff<T: Time>(&self, other: &T) -> f64;
 
     /// Get the difference between two times in milliseconds
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, TimeDiff};
@@ -90,13 +89,14 @@ pub trait TimeDiff {
 /// Provides wrappers on string std types to parse into time structs
 pub trait StrTime {
     /// Parse a string into a time struct of choice
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, StrTime};
     /// println!("2017 - {}", "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S"));
-    fn parse_time<T: Time>(&self, format: &str) -> T 
-    where Self: std::fmt::Display
+    fn parse_time<T: Time>(&self, format: &str) -> T
+    where
+        Self: std::fmt::Display,
     {
         T::strptime(self, format)
     }
@@ -105,14 +105,16 @@ pub trait StrTime {
 /// Provides wrappers on integer std types to convert into time structs
 pub trait IntTime: std::fmt::Display {
     /// Convert an integer into a time struct of choice
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
     /// println!("2017 - {:#?}", 1483228800.from_unix::<System>());
     /// ```
-    fn from_unix<T: Time>(&self) -> T 
-    where Self: std::fmt::Display {
+    fn from_unix<T: Time>(&self) -> T
+    where
+        Self: std::fmt::Display,
+    {
         T::strptime(self.to_string(), "%s")
     }
 }
@@ -120,8 +122,6 @@ pub trait IntTime: std::fmt::Display {
 impl StrTime for str {}
 impl StrTime for String {}
 impl<T: std::fmt::Display> IntTime for T {}
-
-
 
 #[cfg(test)]
 mod test {
@@ -144,7 +144,7 @@ mod test {
         println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
     }
 
-    #[test] 
+    #[test]
     fn strptime() {
         let x = System::strptime("2015-02-18 23:16:09", "%Y-%m-%d %H:%M:%S");
         println!("2015 - {}", x);
@@ -152,9 +152,12 @@ mod test {
         println!("2021 - {}", x);
     }
 
-    #[test] 
+    #[test]
     fn str_time() {
-        println!("2017 - {}", "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S"));
+        println!(
+            "2017 - {}",
+            "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S")
+        );
     }
 
     #[test]

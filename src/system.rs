@@ -1,10 +1,10 @@
-use std::time::SystemTime;
-use core::fmt::Display;
-use chrono::{DateTime, Local};
 use crate::{Time, TimeDiff};
+use chrono::{DateTime, Local};
+use core::fmt::Display;
+use std::time::SystemTime;
 
 /// System time, as grabbed from the system (obviously)
-/// 
+///
 /// `inner` is the time as a SystemTime struct, from `std::time`
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct System {
@@ -29,8 +29,8 @@ impl TimeDiff for System {
 
 impl Time for System {
     fn now() -> Self {
-        System{
-            inner: SystemTime::now()
+        System {
+            inner: SystemTime::now(),
         }
     }
 
@@ -47,22 +47,25 @@ impl Time for System {
             }
             Ok(dt) => dt,
         };
-        System {
-            inner: x.into()
-        }
+        System { inner: x.into() }
     }
 
     fn unix(&self) -> u64 {
-        self.inner.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
+        self.inner
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
     }
 
     fn unix_ms(&self) -> f64 {
-        self.inner.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() as f64
+        self.inner
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as f64
     }
-    
+
     fn strftime(&self, format: &str) -> String {
         let x: DateTime<Local> = DateTime::from(self.inner);
-            x.format(format)
-            .to_string()
+        x.format(format).to_string()
     }
 }
