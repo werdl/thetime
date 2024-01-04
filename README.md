@@ -3,6 +3,7 @@
 - builds on top of std, chrono and time
 - very simple and intuitive to use
 - wraps some very useful functions that are usually buried deep in modules
+- has extensive support for unusual epochs
 ## Examples
 ```rust
 use thetime::{System, Time};
@@ -32,3 +33,8 @@ use thetime::{System, Ntp, Time, IntTime}
 - timestamps as integers to time structs
 - strptime and strftime
 - convienent `now` method in the root for easy access
+- various epochs
+> - 01-01-1904 (MacOS)
+> - 01-01-2001 (MacOS Absolute)
+> - 01-01-1601 (Windows, with 100ns correction)
+> - 01-01-1960 (SAS 4GL)

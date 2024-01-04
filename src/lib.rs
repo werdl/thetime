@@ -6,13 +6,20 @@ pub use system::*;
 
 extern crate time;
 
+/// Returns the current time in seconds since Unix epoch
+/// 
+/// # Examples
+/// ```rust
+/// use thetime::now;
+/// println!("{} seconds since Unix epoch", now());
+/// ```
 pub fn now() -> u64 {
     Ntp::now().local().unix()
 }
 
 /// Implements the core functionality of the library
 pub trait Time {
-    /// Get current time, returning the relevent struct
+    /// Get current time, returning the relevant struct
     ///
     /// # Examples
     /// ```rust
@@ -50,6 +57,53 @@ pub trait Time {
     /// ```
     fn unix_ms(&self) -> f64;
 
+    /// Gets the time in nanoseconds (approximate) since Windows epoch (1601-01-01 00:00:00)
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{} nanoseconds since Windows epoch", System::now().windows_ns());
+    /// println!("{} nanoseconds since Windows epoch from pool.ntp.org", Ntp::now().windows_ns());
+    /// ```
+    fn windows_ns(&self) -> u64 {
+        ((self.unix_ms() + 11_644_473_600_000.0) * 1e4) as u64
+    }
+
+    /// Get the time in seconds since the Mac OS epoch (1904-01-01 00:00:00)
+    ///
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{} seconds since Mac OS epoch", System::now().mac_os());
+    /// println!("{} seconds since Mac OS epoch from pool.ntp.org", Ntp::now().mac_os());
+    /// ```
+    fn mac_os(&self) -> u64 {
+        self.unix() + 2082844800
+    }
+
+    /// Get the time in seconds since the Mac OS Absolute epoch (2001-01-01 00:00:00)
+    ///
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{} seconds since Mac OS Absolute epoch", System::now().mac_os_cfa());
+    /// println!("{} seconds since Mac OS Absolute epoch from pool.ntp.org", Ntp::now().mac_os_cfa());
+    /// ```
+    fn mac_os_cfa(&self) -> u64 {
+        self.unix() - 978307200
+    }
+
+    /// Get the time in seconds since the SAS 4GL epoch (1960-01-01 00:00:00)
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{} seconds since SAS 4GL epoch", System::now().sas_4gl());
+    /// println!("{} seconds since SAS 4GL epoch from pool.ntp.org", Ntp::now().sas_4gl());
+    /// ```
+    fn sas_4gl(&self) -> u64 {
+        self.unix() + 315619200
+    }
     /// Format the time according to the given format string
     ///
     /// # Examples
@@ -102,35 +156,96 @@ pub trait StrTime {
     }
 }
 
-/// Provides wrappers on integer std types to convert into time structs
-pub trait IntTime: std::fmt::Display {
+/// Provides wrappers on integer std types to parse into time structs
+/// 
+/// Note: If there is an error, the function will return the Unix epoch time for the struct of choice
+pub trait IntTime: std::fmt::Display + Into<u64> {
     /// Convert an integer into a time struct of choice
     ///
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// println!("2017 - {:#?}", 1483228800.from_unix::<System>());
+    /// println!("2017 - {:#?}", 1483228800u64.from_unix::<System>());
     /// ```
-    fn from_unix<T: Time>(&self) -> T
-    where
-        Self: std::fmt::Display,
-    {
+    fn from_unix<T: Time>(&self) -> T {
         T::strptime(self.to_string(), "%s")
+    }
+
+    /// Convert an integer into a time struct of choice, from a Windows timestamp (100ns since 1601-01-01 00:00:00)
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, IntTime};
+    /// println!("2017 - {:#?}", 131297344000004217u64.from_windows_ns::<System>());
+    /// ```
+    fn from_windows_ns<T: Time>(self) -> T {
+        let mut unix: u64 = self.into() / 10_000_000;
+        if unix<=11644473600 {
+            return T::strptime("0", "%s")
+        }
+        unix -= 11644473600;
+        T::strptime(unix.to_string(), "%s")
+    }
+
+    /// Convert an integer into a time struct of choice, from a Mac OS timestamp (seconds since 1904-01-01 00:00:00)
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, IntTime};
+    /// println!("2024 - {:#?}", 3787228612u64.from_mac_os::<System>());
+    /// ```
+    fn from_mac_os<T: Time>(self) -> T {
+        let selfu64: u64 = self.into();
+        if 2082844800>=selfu64 {
+            return T::strptime("0", "%s")
+        }
+        let unix: u64 = selfu64 - 2082844800;
+        T::strptime(unix.to_string(), "%s")
+    }
+
+    /// Convert an integer into a time struct of choice, from a Mac OS Absolute timestamp (seconds since 2001-01-01 00:00:00)
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, IntTime};
+    /// println!("2024 - {:#?}", 726076923u64.from_mac_os_cfa::<System>());
+    /// ```
+    fn from_mac_os_cfa<T: Time>(self) -> T {
+        let unix: u64 = self.into() + 978307200;
+        T::strptime(unix.to_string(), "%s")
+    }
+
+    /// Convert an integer into a time struct of choice, from a SAS 4GL timestamp (seconds since 1960-01-01 00:00:00)
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, IntTime};
+    /// println!("2024 - {:#?}", 2020003754u64.from_sas_4gl::<System>());
+    /// ```
+    fn from_sas_4gl<T: Time>(self) -> T {
+        let selfu64: u64 = self.into();
+        if 315619200>=selfu64 {
+            return T::strptime("0", "%s")
+        }
+        let unix: u64 = selfu64 - 315619200;
+        T::strptime(unix.to_string(), "%s")
     }
 }
 
 impl StrTime for str {}
 impl StrTime for String {}
-impl<T: std::fmt::Display> IntTime for T {}
+impl<T: std::fmt::Display + Into<u64>> IntTime for T {}
+
+
 
 #[cfg(test)]
 mod test {
     use super::*;
+
     #[test]
     fn test_system() {
         let x = System::now();
         println!("{}", x);
-        let x = System::now();
         println!("{}", x.unix_ms());
         println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
     }
@@ -139,7 +254,6 @@ mod test {
     fn test_ntp() {
         let x = Ntp::now();
         println!("{}", x);
-        let x = Ntp::now();
         println!("{}", x.unix_ms());
         println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
     }
@@ -170,6 +284,35 @@ mod test {
 
     #[test]
     fn int_time() {
-        println!("2017 - {:#?}", 1483228800.from_unix::<System>());
+        println!("2017 - {}", 1483228800u32.from_unix::<System>());
+        println!(
+            "2017 - {}",
+            131297344000004217u64.from_windows_ns::<System>()
+        );
+        println!("2024 - {}", 3787228612u32.from_mac_os::<System>());
+        println!(
+            "2024 - {}",
+            726076923u32.from_mac_os_cfa::<System>()
+        );
+        println!("1960 (but will display 1970) - {}", 0u32.from_sas_4gl::<System>());
+    }
+
+    #[test]
+    fn windows_tests() {
+        let x = System::now();
+        println!("{} nanoseconds since Windows epoch", x.windows_ns());
+    }
+
+    #[test]
+    fn mac_os() {
+        let x = System::now();
+        println!("{} seconds since Mac OS epoch", x.mac_os());
+        println!("{} seconds since Mac OS Absolute epoch", x.mac_os_cfa());
+    }
+
+    #[test]
+    fn sas_4gl() {
+        let x = System::now();
+        println!("{} seconds since SAS 4GL epoch", x.sas_4gl());
     }
 }

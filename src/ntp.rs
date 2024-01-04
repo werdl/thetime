@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, TimeZone};
+use chrono::{DateTime, Utc, TimeZone, Local};
 use core::fmt::Display;
 use std::net::UdpSocket;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -18,7 +18,7 @@ pub struct Ntp {
 
 impl Display for Ntp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.unix())
+        write!(f, "{}", self.strftime("%Y-%m-%d %H:%M:%S"))
     }
 }
 
@@ -48,8 +48,18 @@ impl TimeDiff for Ntp {
 }
 
 impl Time for Ntp {
+    /// Note - there is a chance that this function fails, in which case we use the System time as a failsafe
     fn now() -> Self {
-        new("pool.ntp.org").unwrap()
+        match new("pool.ntp.org") {
+            Ok(x) => x,
+            Err(_) => Ntp {
+                inner: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as u64,
+                server: "SystemTime".to_string(),
+            },
+        }
     }
     fn unix(&self) -> u64 {
         self.inner / 1000
@@ -79,7 +89,7 @@ impl Time for Ntp {
 
     fn strftime(&self, format: &str) -> String {
         let x = UNIX_EPOCH + Duration::from_millis(self.inner);
-        let x: DateTime<Local> = DateTime::from(x);
+        let x: DateTime<Utc> = DateTime::from(x);
         x.format(format).to_string()
     }
 }

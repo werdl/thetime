@@ -3,7 +3,7 @@ use chrono::{DateTime, Local};
 use core::fmt::Display;
 use std::time::SystemTime;
 
-/// System time, as grabbed from the system (obviously)
+/// System time, as grabbed from the system (obviously). Its timezone is dependent on the system's timezone as configured in the BIOS
 ///
 /// `inner` is the time as a SystemTime struct, from `std::time`
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -13,7 +13,7 @@ pub struct System {
 
 impl Display for System {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.unix())
+        write!(f, "{}", self.strftime("%Y-%m-%d %H:%M:%S"))
     }
 }
 
