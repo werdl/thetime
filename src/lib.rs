@@ -87,7 +87,7 @@ pub trait TimeDiff {
     fn diff_ms<T: Time>(&self, other: &T) -> f64;
 }
 
-/// Provides wrappers on std types to parse into time structs
+/// Provides wrappers on string std types to parse into time structs
 pub trait StrTime {
     /// Parse a string into a time struct of choice
     /// 
@@ -102,6 +102,7 @@ pub trait StrTime {
     }
 }
 
+/// Provides wrappers on integer std types to convert into time structs
 pub trait IntTime: std::fmt::Display {
     /// Convert an integer into a time struct of choice
     /// 
