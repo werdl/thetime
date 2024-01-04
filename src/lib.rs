@@ -6,6 +6,10 @@ pub use ntp::*;
 
 extern crate time;
 
+pub fn now() -> u64 {
+    Ntp::now().local().unix()
+}
+
 /// Implements the core functionality of the library
 pub trait Time {
     /// Get current time, returning the relevent struct
@@ -64,9 +68,9 @@ pub trait TimeDiff {
     /// 
     /// # Examples
     /// ```rust
-    /// use thetime::{System, Ntp, Time, TimeDiff};
+    /// use thetime::{System, Ntp, Time, TimeDiff, StrTime};
     /// let x = System::now();
-    /// let y = Ntp::now();
+    /// let y = "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S");
     /// println!("{} seconds difference", x.diff(&y));
     /// ```
     fn diff<T: Time>(&self, other: &T) -> f64;
@@ -98,8 +102,25 @@ pub trait StrTime {
     }
 }
 
+pub trait IntTime: std::fmt::Display {
+    /// Convert an integer into a time struct of choice
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, IntTime};
+    /// println!("2017 - {:#?}", 1483228800.from_unix::<System>());
+    /// ```
+    fn from_unix<T: Time>(&self) -> T 
+    where Self: std::fmt::Display {
+        T::strptime(self.to_string(), "%s")
+    }
+}
+
 impl StrTime for str {}
 impl StrTime for String {}
+impl<T: std::fmt::Display> IntTime for T {}
+
+
 
 #[cfg(test)]
 mod test {
@@ -138,8 +159,13 @@ mod test {
     #[test]
     fn time_diff() {
         let x = System::now();
-        let y = Ntp::now();
-        println!("{} seconds difference", x.diff(&y));
+        let y = "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S");
+        println!("{} seconds difference", y.diff(&x));
         println!("{} milliseconds difference", x.diff_ms(&y));
+    }
+
+    #[test]
+    fn int_time() {
+        println!("2017 - {:#?}", 1483228800.from_unix::<System>());
     }
 }

@@ -19,11 +19,11 @@ impl Display for System {
 
 impl TimeDiff for System {
     fn diff<T: Time>(&self, other: &T) -> f64 {
-        (self.unix() - other.unix()) as f64
+        self.unix().abs_diff(other.unix()) as f64
     }
 
     fn diff_ms<T: Time>(&self, other: &T) -> f64 {
-        (self.unix_ms() - other.unix_ms()) as f64
+        (self.unix_ms() as u64).abs_diff(other.unix_ms() as u64) as f64
     }
 }
 

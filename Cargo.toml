@@ -1,9 +1,9 @@
 [package]
 name = "thetime"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 license = "Apache-2.0"
-description = "A simple Rust library for dealing with the time, both NTP and System."
+description = "A simple Rust library for dealing with the time, both NTP and System. Contains wrappers for functions often buried in modules."
 repository = "https://github.com/werdl/thetime"
 documentation = "https://docs.rs/thetime"
 

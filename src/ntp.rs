@@ -9,7 +9,7 @@ const REF_TIME_1970: u32 = 2208988800; // Reference time
 
 /// NTP time
 /// 
-/// `inner` is milliseconds since Unix epoch, by default UTC, and `server` is the NTP server address that the time was fetched from.
+/// `inner` is milliseconds since Unix epoch, by default UTC, and `server` is the NTP server address that the time was fetched from. Note that `server` cannot be relied upon to be a valid server, as it may be `strptime` or similar.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ntp {
     inner: u64,
@@ -37,11 +37,11 @@ impl Ntp {
 
 impl TimeDiff for Ntp {
     fn diff<T: Time>(&self, other: &T) -> f64 {
-        (self.unix() - other.unix()) as f64
+        self.unix().abs_diff(other.unix()) as f64
     }
 
     fn diff_ms<T: Time>(&self, other: &T) -> f64 {
-        (self.unix_ms() - other.unix_ms()) as f64
+        (self.unix_ms() as u64).abs_diff(other.unix_ms() as u64) as f64
     }
 }
 
