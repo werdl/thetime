@@ -3,10 +3,7 @@ use core::fmt::Display;
 use std::net::UdpSocket;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::{Time, TimeDiff};
-
-const REF_TIME_1970: u32 = 2208988800; // Reference time
-const OFFSET_1601: u64 = 11644473600; // Offset between 1601 and 1970
+use crate::{Time, TimeDiff, OFFSET_1601, REF_TIME_1970};
 
 /// NTP time
 ///
@@ -18,8 +15,6 @@ pub struct Ntp {
     inner_milliseconds: u64,
     server: String,
 }
-
-
 
 impl Display for Ntp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -45,10 +40,10 @@ impl Time for Ntp {
         }
     }
     fn unix(&self) -> u64 {
-        self.inner_secs - OFFSET_1601
+        self.inner_secs - (OFFSET_1601 as u64)
     }
     fn unix_ms(&self) -> u64 {
-        ((self.inner_secs * 1000) + self.inner_milliseconds) - (OFFSET_1601 * 1000)
+        ((self.inner_secs * 1000) + self.inner_milliseconds) - ((OFFSET_1601 as u64) * 1000)
     }
 
     fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self {
@@ -72,12 +67,15 @@ impl Time for Ntp {
     }
 
     fn strftime(&self, format: &str) -> String {
-        let timestamp = if self.inner_secs >= OFFSET_1601 {
-            (self.inner_secs - OFFSET_1601) as i64
+        let timestamp = if self.inner_secs >= (OFFSET_1601 as u64) {
+            (self.inner_secs - (OFFSET_1601 as u64)) as i64
         } else {
             -((OFFSET_1601 as i64) - (self.inner_secs as i64))
         };
-        NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap().format(format).to_string()
+        NaiveDateTime::from_timestamp_opt(timestamp, 0)
+            .unwrap()
+            .format(format)
+            .to_string()
     }
 
     fn from_epoch(timestamp: u64) -> Self {
@@ -116,7 +114,7 @@ fn new<T: ToString>(server_addr: T) -> Result<Ntp, Box<dyn std::error::Error>> {
 
         return Ok(Ntp {
             server: server.to_string(),
-            inner_secs: (t) + OFFSET_1601,
+            inner_secs: (t) + (OFFSET_1601 as u64),
             inner_milliseconds: milliseconds,
         });
     }

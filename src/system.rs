@@ -1,9 +1,7 @@
-use crate::{Time, TimeDiff};
+use crate::{Time, TimeDiff, OFFSET_1601};
 use chrono::{DateTime, NaiveDateTime};
 use core::fmt::Display;
 use std::time::SystemTime;
-
-const OFFSET_1601: u64 = 11644473600; // Offset between 1601 and 1970
 
 /// System time, as grabbed from the system (obviously). Its timezone is dependent on the system's timezone as configured in the BIOS
 ///
@@ -30,7 +28,7 @@ impl Time for System {
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
                 .as_secs()
-                + OFFSET_1601,
+                + (OFFSET_1601 as u64),
             inner_milliseconds: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
@@ -58,20 +56,23 @@ impl Time for System {
     }
 
     fn unix(&self) -> u64 {
-        self.inner_secs - OFFSET_1601
+        self.inner_secs - (OFFSET_1601 as u64)
     }
 
     fn unix_ms(&self) -> u64 {
-        ((self.inner_secs * 1000) + self.inner_milliseconds) - (OFFSET_1601 * 1000)
+        ((self.inner_secs * 1000) + self.inner_milliseconds) - ((OFFSET_1601 as u64) * 1000)
     }
 
     fn strftime(&self, format: &str) -> String {
-        let timestamp = if self.inner_secs >= OFFSET_1601 {
-            (self.inner_secs - OFFSET_1601) as i64
+        let timestamp = if self.inner_secs >= (OFFSET_1601 as u64) {
+            (self.inner_secs - (OFFSET_1601 as u64)) as i64
         } else {
             -((OFFSET_1601 as i64) - (self.inner_secs as i64))
         };
-        NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap().format(format).to_string()
+        NaiveDateTime::from_timestamp_opt(timestamp, 0)
+            .unwrap()
+            .format(format)
+            .to_string()
     }
 
     fn from_epoch(timestamp: u64) -> Self {
