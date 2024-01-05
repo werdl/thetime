@@ -3,7 +3,7 @@ name = "thetime"
 version = "0.4.2"
 edition = "2021"
 license = "Apache-2.0"
-description = "A simple Rust library for dealing with the time, both NTP and System. Contains wrappers for functions often buried in modules. Has extensive support for unusual epochs (Windows LDAP 100ns, MacOS and MacOS CFA, SAS 4GL, WebKit and Chromium)"
+description = "A simple Rust library for dealing with the time, both NTP and System. Contains wrappers for functions often buried in modules. Has extensive support for unusual epochs (Windows LDAP 100ns, MacOS and MacOS CFA, SAS 4GL, WebKit and Chromium 1μs)"
 repository = "https://github.com/werdl/thetime"
 documentation = "https://docs.rs/thetime"
 
