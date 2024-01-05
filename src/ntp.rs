@@ -10,7 +10,8 @@ const OFFSET_1601: u64 = 11644473600; // Offset between 1601 and 1970
 
 /// NTP time
 ///
-/// `inner` is milliseconds since Unix epoch, by default UTC, and `server` is the NTP server address that the time was fetched from. Note that `server` cannot be relied upon to be a valid server, as it may be `strptime` or similar.
+/// `inner_secs` is the time as seconds since `1601-01-01 00:00:00`, from `std::time`
+/// `inner_milliseconds` is the subsec milliseconds
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ntp {
     inner_secs: u64,
@@ -22,19 +23,11 @@ pub struct Ntp {
 
 impl Display for Ntp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.strftime("%Y-%m-%d %H:%M:%S"))
+        write!(f, "{:#?}", self)
     }
 }
 
-impl TimeDiff for Ntp {
-    fn diff<T: Time>(&self, other: &T) -> f64 {
-        self.unix().abs_diff(other.unix()) as f64
-    }
-
-    fn diff_ms<T: Time>(&self, other: &T) -> f64 {
-        (self.unix_ms() as u64).abs_diff(other.unix_ms() as u64) as f64
-    }
-}
+impl TimeDiff for Ntp {}
 
 impl Time for Ntp {
     /// Note - there is a chance that this function fails, in which case we use the System time as a failsafe
@@ -54,8 +47,8 @@ impl Time for Ntp {
     fn unix(&self) -> u64 {
         (self.inner_secs - OFFSET_1601) as u64
     }
-    fn unix_ms(&self) -> f64 {
-        (((self.inner_secs * 1000) + self.inner_milliseconds) - (OFFSET_1601 * 1000)) as f64
+    fn unix_ms(&self) -> u64 {
+        ((self.inner_secs * 1000) + self.inner_milliseconds) - (OFFSET_1601 * 1000)
     }
 
     fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self {
@@ -87,12 +80,16 @@ impl Time for Ntp {
         NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap().format(format).to_string()
     }
 
-    fn from_epoch(timestamp: f64) -> Self {
+    fn from_epoch(timestamp: u64) -> Self {
         Ntp {
             inner_secs: (timestamp as u64),
-            inner_milliseconds: 0,
+            inner_milliseconds: timestamp % 1000,
             server: "from_epoch".to_string(),
         }
+    }
+
+    fn raw(&self) -> u64 {
+        (self.inner_secs * 1000) + self.inner_milliseconds
     }
 }
 
