@@ -45,7 +45,7 @@ impl Time for Ntp {
         }
     }
     fn unix(&self) -> u64 {
-        (self.inner_secs - OFFSET_1601) as u64
+        self.inner_secs - OFFSET_1601
     }
     fn unix_ms(&self) -> u64 {
         ((self.inner_secs * 1000) + self.inner_milliseconds) - (OFFSET_1601 * 1000)
@@ -75,14 +75,14 @@ impl Time for Ntp {
         let timestamp = if self.inner_secs >= OFFSET_1601 {
             (self.inner_secs - OFFSET_1601) as i64
         } else {
-            -((OFFSET_1601 as i64) - (self.inner_secs as i64)) as i64
+            -((OFFSET_1601 as i64) - (self.inner_secs as i64))
         };
         NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap().format(format).to_string()
     }
 
     fn from_epoch(timestamp: u64) -> Self {
         Ntp {
-            inner_secs: (timestamp as u64),
+            inner_secs: timestamp,
             inner_milliseconds: timestamp % 1000,
             server: "from_epoch".to_string(),
         }

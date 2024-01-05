@@ -26,11 +26,11 @@ impl TimeDiff for System {}
 impl Time for System {
     fn now() -> Self {
         System {
-            inner_secs: (SystemTime::now()
+            inner_secs: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
-                .as_secs() as u64)
-                + (OFFSET_1601 as u64),
+                .as_secs()
+                + OFFSET_1601,
             inner_milliseconds: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
@@ -58,7 +58,7 @@ impl Time for System {
     }
 
     fn unix(&self) -> u64 {
-        (self.inner_secs - OFFSET_1601 as u64) as u64
+        self.inner_secs - OFFSET_1601
     }
 
     fn unix_ms(&self) -> u64 {
@@ -69,14 +69,14 @@ impl Time for System {
         let timestamp = if self.inner_secs >= OFFSET_1601 {
             (self.inner_secs - OFFSET_1601) as i64
         } else {
-            -((OFFSET_1601 as i64) - (self.inner_secs as i64)) as i64
+            -((OFFSET_1601 as i64) - (self.inner_secs as i64))
         };
         NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap().format(format).to_string()
     }
 
     fn from_epoch(timestamp: u64) -> Self {
         System {
-            inner_secs: (timestamp as u64),
+            inner_secs: timestamp,
             inner_milliseconds: timestamp % 1000,
         }
     }

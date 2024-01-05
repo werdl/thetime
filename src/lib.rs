@@ -134,7 +134,7 @@ pub trait Time {
     /// 
     /// # Examples
     /// ```rust
-    /// use thetime::{System, Ntp, Time};
+    /// use thetime::{System, Ntp, Time, StrTime};
     /// let date2017 = "2017-01-01 00:00:00".parse_time::<System>("%Y-%m-%d %H:%M:%S");
     /// println!("2017 - {}", date2017.pretty());
     /// assert_eq!(date2017.pretty(), "2017-01-01 00:00:00");
@@ -210,10 +210,10 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// let actual = format!("2017 - {:?}", 1483228800u64.from_unix::<System>());
+    /// let actual = format!("2017 - {:?}", 1483228800u64.unix::<System>());
     /// assert_eq!(actual, "2017 - System { inner_secs: 13127702400, inner_milliseconds: 400 }");
     /// ```
-    fn from_unix<T: Time>(self) -> T {
+    fn unix<T: Time>(self) -> T {
         let unix: u64 = self.into();
         T::from_epoch(unix + 11644473600)
     }
@@ -223,10 +223,10 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// println!("2017 - {:#?}", 131277024000000000u64.from_windows_ns::<System>());
-    /// assert_eq!(131277024000000000u64.from_windows_ns::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2017-01-01 00:00:00");
+    /// println!("2017 - {:#?}", 131277024000000000u64.windows_ns::<System>());
+    /// assert_eq!(131277024000000000u64.windows_ns::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2017-01-01 00:00:00");
     /// ```
-    fn from_windows_ns<T: Time>(self) -> T {
+    fn windows_ns<T: Time>(self) -> T {
         T::from_epoch(self.into() / 10_000_000)
     }
 
@@ -235,10 +235,10 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// println!("2024 - {:#?}", 3787310789u64.from_mac_os::<System>());
-    /// assert_eq!(3787310789u64.from_mac_os::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2024-01-05 14:46:29");
+    /// println!("2024 - {:#?}", 3787310789u64.mac_os::<System>());
+    /// assert_eq!(3787310789u64.mac_os::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2024-01-05 14:46:29");
     /// ```
-    fn from_mac_os<T: Time>(self) -> T {
+    fn mac_os<T: Time>(self) -> T {
         let selfu64: u64 = self.into();
         let selfi64: i64 = selfu64 as i64;
         if 2082844800 >= selfu64 {
@@ -253,10 +253,10 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// println!("2024 - {:#?}", 726158877u64.from_mac_os_cfa::<System>());
-    /// assert_eq!(726158877u64.from_mac_os_cfa::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2024-01-05 14:47:57");
+    /// println!("2024 - {:#?}", 726158877u64.mac_os_cfa::<System>());
+    /// assert_eq!(726158877u64.mac_os_cfa::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2024-01-05 14:47:57");
     /// ```
-    fn from_mac_os_cfa<T: Time>(self) -> T {
+    fn mac_os_cfa<T: Time>(self) -> T {
         let selfu64: u64 = self.into();
         let unix: i64 = (selfu64 as i64) + 978307200;
         T::from_epoch((unix + 11644473600) as u64)
@@ -267,10 +267,10 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// println!("2024 - {:#?}", 2020003754u64.from_sas_4gl::<System>());
-    /// assert_eq!(2020003754u64.from_sas_4gl::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2024-01-04");
+    /// println!("2024 - {:#?}", 2020003754u64.sas_4gl::<System>());
+    /// assert_eq!(2020003754u64.sas_4gl::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2024-01-04 16:09:14");
     /// ```
-    fn from_sas_4gl<T: Time>(self) -> T {
+    fn sas_4gl<T: Time>(self) -> T {
         let selfu64: u64 = self.into();
         let unix: i64 = (selfu64 as i64) - 315619200;
         T::from_epoch((unix + 11644473600) as u64)
@@ -354,15 +354,15 @@ mod test {
 
     #[test]
     fn int_time() {
-        assert_eq!(1483228800u32.from_unix::<Ntp>().pretty(), "2017-01-01 00:00:00");
+        assert_eq!(1483228800u32.unix::<Ntp>().pretty(), "2017-01-01 00:00:00");
         assert_eq!(
-            131277024000000000u64.from_windows_ns::<Ntp>().pretty(),
+            131277024000000000u64.windows_ns::<Ntp>().pretty(),
             "2017-01-01 00:00:00"
 
         );
-        assert_eq!(3787228612u32.from_mac_os::<Ntp>().pretty(), "2024-01-04 15:56:52");
-        assert_eq!(726158877u32.from_mac_os_cfa::<Ntp>().pretty(),"2024-01-05 14:47:57");
-        assert_eq!(0u32.from_sas_4gl::<Ntp>().pretty(), "1960-01-01 00:00:00");
+        assert_eq!(3787228612u32.mac_os::<Ntp>().pretty(), "2024-01-04 15:56:52");
+        assert_eq!(726158877u32.mac_os_cfa::<Ntp>().pretty(),"2024-01-05 14:47:57");
+        assert_eq!(0u32.sas_4gl::<Ntp>().pretty(), "1960-01-01 00:00:00");
     }
 
     #[test]
