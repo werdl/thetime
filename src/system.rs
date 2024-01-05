@@ -1,14 +1,17 @@
 use crate::{Time, TimeDiff};
-use chrono::{DateTime, Local};
+use chrono::{DateTime, NaiveDateTime};
 use core::fmt::Display;
 use std::time::SystemTime;
 
+const OFFSET_1601: u64 = 11644473600; // Offset between 1601 and 1970
+
 /// System time, as grabbed from the system (obviously). Its timezone is dependent on the system's timezone as configured in the BIOS
 ///
-/// `inner` is the time as a SystemTime struct, from `std::time`
+/// `inner_secs` is the time as seconds since 1601-01-01 00:00:00, from `std::time`
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct System {
-    inner: SystemTime,
+    inner_secs: u64,
+    inner_milliseconds: u64,
 }
 
 impl Display for System {
@@ -19,18 +22,26 @@ impl Display for System {
 
 impl TimeDiff for System {
     fn diff<T: Time>(&self, other: &T) -> f64 {
-        self.unix().abs_diff(other.unix()) as f64
+        (self.unix() - other.unix()) as f64
     }
 
     fn diff_ms<T: Time>(&self, other: &T) -> f64 {
-        (self.unix_ms() as u64).abs_diff(other.unix_ms() as u64) as f64
+        (self.unix_ms() - other.unix_ms()) as f64
     }
 }
 
 impl Time for System {
     fn now() -> Self {
         System {
-            inner: SystemTime::now(),
+            inner_secs: (SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as u64)
+                + (OFFSET_1601 as u64),
+            inner_milliseconds: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         }
     }
 
@@ -47,25 +58,33 @@ impl Time for System {
             }
             Ok(dt) => dt,
         };
-        System { inner: x.into() }
+        System {
+            inner_secs: (x.timestamp() + (OFFSET_1601 as i64)) as u64,
+            inner_milliseconds: 0,
+        }
     }
 
     fn unix(&self) -> u64 {
-        self.inner
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
+        (self.inner_secs - OFFSET_1601 as u64) as u64
     }
 
     fn unix_ms(&self) -> f64 {
-        self.inner
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as f64
+        (((self.inner_secs * 1000) + self.inner_milliseconds) - (OFFSET_1601 * 1000)) as f64
     }
 
     fn strftime(&self, format: &str) -> String {
-        let x: DateTime<Local> = DateTime::from(self.inner);
-        x.format(format).to_string()
+        let timestamp = if self.inner_secs >= OFFSET_1601 {
+            (self.inner_secs - OFFSET_1601) as i64
+        } else {
+            -((OFFSET_1601 as i64) - (self.inner_secs as i64)) as i64
+        };
+        NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap().format(format).to_string()
+    }
+
+    fn from_epoch(timestamp: f64) -> Self {
+        System {
+            inner_secs: (timestamp as u64),
+            inner_milliseconds: ((timestamp - (timestamp as u64) as f64) * 1000.0) as u64,
+        }
     }
 }

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, TimeZone, Local};
+use chrono::{DateTime, NaiveDateTime};
 use core::fmt::Display;
 use std::net::UdpSocket;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -6,34 +6,23 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::{Time, TimeDiff};
 
 const REF_TIME_1970: u32 = 2208988800; // Reference time
+const OFFSET_1601: u64 = 11644473600; // Offset between 1601 and 1970
 
 /// NTP time
 ///
 /// `inner` is milliseconds since Unix epoch, by default UTC, and `server` is the NTP server address that the time was fetched from. Note that `server` cannot be relied upon to be a valid server, as it may be `strptime` or similar.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ntp {
-    inner: u64,
+    inner_secs: u64,
+    inner_milliseconds: u64,
     server: String,
 }
+
+
 
 impl Display for Ntp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.strftime("%Y-%m-%d %H:%M:%S"))
-    }
-}
-
-impl Ntp {
-    /// Convert NTP time to local time
-    pub fn local(&self) -> Self {
-        let seconds = self.inner / 1000;
-        let nanoseconds = (self.inner % 1000) * 1_000_000;
-        Ntp {
-            inner: Local
-                .timestamp_opt(seconds as i64, nanoseconds as u32)
-                .unwrap()
-                .timestamp_millis() as u64,
-            server: self.server.clone(),
-        }
     }
 }
 
@@ -53,19 +42,20 @@ impl Time for Ntp {
         match new("pool.ntp.org") {
             Ok(x) => x,
             Err(_) => Ntp {
-                inner: SystemTime::now()
+                inner_secs: SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap()
-                    .as_millis() as u64,
+                    .as_secs(),
+                inner_milliseconds: 0,
                 server: "SystemTime".to_string(),
             },
         }
     }
     fn unix(&self) -> u64 {
-        self.inner / 1000
+        (self.inner_secs - OFFSET_1601) as u64
     }
     fn unix_ms(&self) -> f64 {
-        self.inner as f64
+        (((self.inner_secs * 1000) + self.inner_milliseconds) - (OFFSET_1601 * 1000)) as f64
     }
 
     fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self {
@@ -82,15 +72,27 @@ impl Time for Ntp {
             Ok(dt) => dt,
         };
         Ntp {
-            inner: x.timestamp_millis() as u64,
+            inner_secs: (x.timestamp() + (OFFSET_1601 as i64)) as u64,
+            inner_milliseconds: x.timestamp_millis() as u64,
             server: "strptime".to_string(),
         }
     }
 
     fn strftime(&self, format: &str) -> String {
-        let x = UNIX_EPOCH + Duration::from_millis(self.inner);
-        let x: DateTime<Utc> = DateTime::from(x);
-        x.format(format).to_string()
+        let timestamp = if self.inner_secs >= OFFSET_1601 {
+            (self.inner_secs - OFFSET_1601) as i64
+        } else {
+            -((OFFSET_1601 as i64) - (self.inner_secs as i64)) as i64
+        };
+        NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap().format(format).to_string()
+    }
+
+    fn from_epoch(timestamp: f64) -> Self {
+        Ntp {
+            inner_secs: (timestamp as u64),
+            inner_milliseconds: 0,
+            server: "from_epoch".to_string(),
+        }
     }
 }
 
@@ -117,7 +119,8 @@ fn new<T: ToString>(server_addr: T) -> Result<Ntp, Box<dyn std::error::Error>> {
 
         return Ok(Ntp {
             server: server.to_string(),
-            inner: t * 1000 + milliseconds,
+            inner_secs: (t) + OFFSET_1601,
+            inner_milliseconds: milliseconds,
         });
     }
 
