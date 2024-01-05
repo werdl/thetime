@@ -1,6 +1,6 @@
 [package]
 name = "thetime"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "A simple Rust library for dealing with the time, both NTP and System. Contains wrappers for functions often buried in modules."
