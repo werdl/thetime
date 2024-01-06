@@ -1,7 +1,6 @@
 use crate::{Time, TimeDiff, OFFSET_1601};
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{DateTime, NaiveDateTime, Local};
 use core::fmt::Display;
-use std::time::SystemTime;
 
 /// System time, as grabbed from the system (obviously). Its timezone is dependent on the system's timezone as configured in the BIOS
 ///
@@ -11,6 +10,7 @@ use std::time::SystemTime;
 pub struct System {
     inner_secs: u64,
     inner_milliseconds: u64,
+    pub utc_offset: i32,
 }
 
 impl Display for System {
@@ -23,17 +23,16 @@ impl TimeDiff for System {}
 
 impl Time for System {
     fn now() -> Self {
+        let now: DateTime<Local> = Local::now();
         System {
-            inner_secs: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_secs()
-                + (OFFSET_1601 as u64),
-            inner_milliseconds: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .subsec_millis() as u64,
+            inner_secs: (now.timestamp() + OFFSET_1601 as i64) as u64,
+            inner_milliseconds: (now.timestamp_subsec_millis()) as u64,
+            utc_offset: now.offset().local_minus_utc(),
         }
+    }
+
+    fn utc_offset(&self) -> i32 {
+        self.utc_offset
     }
 
     fn strptime<T: ToString, G: ToString>(s: T, format: G) -> Self {
@@ -52,20 +51,20 @@ impl Time for System {
         System {
             inner_secs: (x.timestamp() + (OFFSET_1601 as i64)) as u64,
             inner_milliseconds: x.timestamp_subsec_millis() as u64,
+            utc_offset: x.offset().local_minus_utc() as i32,
         }
     }
 
-    fn unix(&self) -> u64 {
-        self.inner_secs - (OFFSET_1601 as u64)
+    fn unix(&self) -> i64 {
+        (self.inner_secs as i64) - (OFFSET_1601 as i64)
     }
-
-    fn unix_ms(&self) -> u64 {
-        ((self.inner_secs * 1000) + self.inner_milliseconds) - ((OFFSET_1601 as u64) * 1000)
+    fn unix_ms(&self) -> i64 {
+        ((self.inner_secs as i64 * 1000i64) + self.inner_milliseconds as i64) - (OFFSET_1601 as i64 * 1000i64)
     }
 
     fn strftime(&self, format: &str) -> String {
-        let timestamp = if self.inner_secs >= (OFFSET_1601 as u64) {
-            (self.inner_secs - (OFFSET_1601 as u64)) as i64
+        let timestamp = if self.inner_secs >= OFFSET_1601 {
+            (self.inner_secs - OFFSET_1601) as i64
         } else {
             -((OFFSET_1601 as i64) - (self.inner_secs as i64))
         };
@@ -77,12 +76,21 @@ impl Time for System {
 
     fn from_epoch(timestamp: u64) -> Self {
         System {
-            inner_secs: timestamp,
+            inner_secs: (timestamp / 1000),
             inner_milliseconds: timestamp % 1000,
+            utc_offset: 0,
         }
     }
 
     fn raw(&self) -> u64 {
         (self.inner_secs * 1000) + self.inner_milliseconds
+    }
+
+    fn from_epoch_offset(timestamp: u64, offset: i32) -> Self {
+        System {
+            inner_secs: (timestamp / 1000),
+            inner_milliseconds: timestamp % 1000,
+            utc_offset: offset,
+        }
     }
 }

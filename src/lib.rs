@@ -4,6 +4,19 @@ pub mod ntp;
 /// re-exported for easier access (no `use thetime::system::System;`, just `use thetime::System;`)
 pub mod system;
 
+/// Timezones - a list of common timezones
+/// Note: some names clash, examples Arabia Standard Time (AST) and Atlantic Standard Time (ATST), so we lengthen as shown above
+/// 
+/// # Examples
+/// ```
+/// use thetime::timezones;
+/// println!("{}", timezones::UTC);
+/// println!("{}", timezones::BST);
+/// ```
+
+pub mod timezones;
+
+
 /// export the ntp file for easier access
 pub use ntp::*;
 
@@ -18,13 +31,13 @@ pub const REF_TIME_1970: u64 = 2208988800;
 pub const OFFSET_1601: u64 = 11644473600;
 
 /// Magic number for SAS 4GL (offset betwenn 1960 and 1970)
-pub const MAGIC_SAS_4GL: u64 = 315619200;
+pub const MAGIC_SAS_4GL: i64 = 315619200;
 
 /// Magic number for Macos epoch (offset between 1904 and 1970)
-pub const MAGIC_MAC_OS: u64 = 2082844800;
+pub const MAGIC_MAC_OS: i64 = 2082844800;
 
 /// Magic number for Macos Absolute epoch (offset between 2001 and 1970)
-pub const MAGIC_MAC_OS_CFA: u64 = 978307200;
+pub const MAGIC_MAC_OS_CFA: i64 = 978307200;
 /// Returns the current time in seconds since Unix epoch
 ///
 /// # Examples
@@ -32,11 +45,13 @@ pub const MAGIC_MAC_OS_CFA: u64 = 978307200;
 /// use thetime::now;
 /// println!("{} seconds since Unix epoch", now());
 /// ```
-pub fn now() -> u64 {
+pub fn now() -> i64 {
     Ntp::now().unix()
 }
 
 /// Implements the core functionality of the library
+/// 
+/// The conversion methods from struct to various timestamps do support negatives where needed (everything but `windows_ns` as it uses the same epoch as we do)
 pub trait Time {
     /// Get current time, returning the relevant struct
     ///
@@ -64,7 +79,7 @@ pub trait Time {
     /// println!("{} seconds since Unix epoch", System::now().unix());
     /// println!("{} seconds since Unix epoch from pool.ntp.org", Ntp::now().unix());
     /// ```
-    fn unix(&self) -> u64;
+    fn unix(&self) -> i64;
 
     /// Get the time in milliseconds since Unix epoch
     ///
@@ -74,7 +89,7 @@ pub trait Time {
     /// println!("{} milliseconds since Unix epoch", System::now().unix_ms());
     /// println!("{} milliseconds since Unix epoch from pool.ntp.org", Ntp::now().unix_ms());
     /// ```
-    fn unix_ms(&self) -> u64;
+    fn unix_ms(&self) -> i64;
 
     /// Gets the time in nanoseconds (approximate) since Windows epoch (`1601-01-01 00:00:00`)
     ///
@@ -84,8 +99,8 @@ pub trait Time {
     /// println!("{} nanoseconds since Windows epoch", System::now().windows_ns());
     /// println!("{} nanoseconds since Windows epoch from pool.ntp.org", Ntp::now().windows_ns());
     /// ```
-    fn windows_ns(&self) -> u64 {
-        ((self.epoch() as f64) * 1e4) as u64
+    fn windows_ns(&self) -> i64 {
+        ((self.epoch() as f64) * 1e4) as i64
     }
 
     /// Gets the time in microseconds (approximate) since Webkit epoch (`1601-01-01 00:00:00`)
@@ -96,8 +111,8 @@ pub trait Time {
     /// println!("{} microseconds since Webkit epoch", System::now().webkit());
     /// println!("{} microseconds since Webkit epoch from pool.ntp.org", Ntp::now().webkit());
     /// ```
-    fn webkit(&self) -> u64 {
-        ((self.epoch() as f64) * 1e3) as u64
+    fn webkit(&self) -> i64 {
+        ((self.epoch() as f64) * 1e3) as i64
     }
 
     /// Get the time in seconds since the Mac OS epoch (1904-01-01 00:00:00)
@@ -108,7 +123,7 @@ pub trait Time {
     /// println!("{} seconds since Mac OS epoch", System::now().mac_os());
     /// println!("{} seconds since Mac OS epoch from pool.ntp.org", Ntp::now().mac_os());
     /// ```
-    fn mac_os(&self) -> u64 {
+    fn mac_os(&self) -> i64 {
         self.unix() + MAGIC_MAC_OS
     }
 
@@ -120,13 +135,8 @@ pub trait Time {
     /// println!("{} seconds since Mac OS Absolute epoch", System::now().mac_os_cfa());
     /// println!("{} seconds since Mac OS Absolute epoch from pool.ntp.org", Ntp::now().mac_os_cfa());
     /// ```
-    fn mac_os_cfa(&self) -> u64 {
-        let unix = self.unix();
-        if unix < MAGIC_MAC_OS_CFA {
-            return 0;
-        } else {
-            self.unix() - MAGIC_MAC_OS_CFA
-        }
+    fn mac_os_cfa(&self) -> i64 {
+        self.unix() - MAGIC_MAC_OS_CFA
     }
 
     /// Get the time in seconds since the SAS 4GL epoch (1960-01-01 00:00:00)
@@ -137,7 +147,7 @@ pub trait Time {
     /// println!("{} seconds since SAS 4GL epoch", System::now().sas_4gl());
     /// println!("{} seconds since SAS 4GL epoch from pool.ntp.org", Ntp::now().sas_4gl());
     /// ```
-    fn sas_4gl(&self) -> u64 {
+    fn sas_4gl(&self) -> i64 {
         self.unix() + MAGIC_SAS_4GL
     }
     /// Format the time according to the given format string
@@ -158,8 +168,8 @@ pub trait Time {
     /// println!("{} milliseconds since the epoch we use", System::now().epoch());
     /// println!("{} milliseconds since the epoch we use from pool.ntp.org", Ntp::now().epoch());
     /// ```
-    fn epoch(&self) -> u64 {
-        self.unix_ms() + (OFFSET_1601 * 1000) as u64
+    fn epoch(&self) -> i64 {
+        self.unix_ms() + (OFFSET_1601 as i64 * 1000i64)
     }
 
     /// pretty print the time object
@@ -176,9 +186,11 @@ pub trait Time {
     }
 
     /// Don't use this method, it's for internal use only (for instantiating structs from timestamps using the `1601-01-01 00:00:00` epoch)
+    #[doc(hidden)]
     fn from_epoch(timestamp: u64) -> Self;
 
     /// Don't use this method, it's for internal use only (returns raw struct ms)
+    #[doc(hidden)]
     fn raw(&self) -> u64;
 
     /// Returns the date formatted in ISO8601 format
@@ -204,6 +216,127 @@ pub trait Time {
     fn rfc3339(&self) -> String {
         self.strftime("%Y-%m-%dT%H:%M:%S.") + &(self.raw() % 1000).to_string() + "Z"
     }
+
+    /// internal only
+    #[doc(hidden)]
+    fn utc_offset(&self) -> i32;
+
+    /// Gets the timezone offset in the format HH:MM
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().tz_offset());
+    /// println!("{}", Ntp::now().tz_offset());
+    /// ```
+    fn tz_offset(&self) -> String {
+        let offset = self.utc_offset();
+        let sign = if offset < 0 { "-" } else { "+" };
+        let offset = offset.abs();
+        let hours = offset / 3600;
+        let minutes = (offset % 3600) / 60;
+        format!("{}{:02}:{:02}", sign, hours, minutes)
+    }
+
+    /// Changes the timezone offset of the time object, where `offset` is in the form "+|-[0-5][0-9]:[0-5][0-9]"
+    /// Note that this change is relative to UTC, not the current timezone
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().change_tz("+01:00"));
+    /// println!("{}", Ntp::now().change_tz("-01:00"));
+    /// ```
+    fn change_tz<T: ToString>(&self, offset: T) -> Self 
+    where Self: Sized {
+        let offset = offset.to_string();
+        let offset_seconds = offset[1..3].parse::<i32>().unwrap() * 3600
+            + offset[4..6].parse::<i32>().unwrap() * 60;
+
+        let offset_seconds = if offset.starts_with('+') {
+            offset_seconds
+        } else {
+            -offset_seconds
+        };
+
+        let duped_secs = offset_seconds;
+
+
+        let utc_self = Self::from_epoch_offset((self.raw() as i64 + (self.utc_offset() as i64 * 1000i64)) as u64, 0);
+
+
+        Self::from_epoch_offset((utc_self.raw() as i64 + (offset_seconds as i64 * 1000i64)) as u64, -duped_secs)
+    }
+
+    /// add an amount in seconds to a time object
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().add_seconds(3600));
+    /// println!("{}", Ntp::now().add_seconds(3600));
+    /// ```
+    fn add_duration(&self, duration: i64) -> Self
+    where Self: Sized {
+        Self::from_epoch((self.raw() as i64 + (duration * 1000)) as u64)
+    }
+
+    /// add an amount in minutes to a time object
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().add_minutes(60));
+    /// println!("{}", Ntp::now().add_minutes(-60));
+    /// ```
+    fn add_minutes(&self, minutes: i64) -> Self
+    where Self: Sized {
+        self.add_duration(minutes * 60)
+    }
+
+    /// add an amount in hours to a time object
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().add_minutes(60));
+    /// println!("{}", Ntp::now().add_minutes(24));
+    /// ```
+    fn add_hours(&self, hours: i64) -> Self
+    where Self: Sized {
+        self.add_duration(hours * 3600)
+    }
+
+    /// add an amount in days to a time object
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().add_days(7));
+    /// println!("{}", Ntp::now().add_days(24));
+    /// ```
+    fn add_days(&self, days: i64) -> Self
+    where Self: Sized {
+        self.add_duration(days * 86400)
+    }
+
+    /// add an amount in weeks to a time object
+    /// we stop at weeks to avoid potential leap year confusion
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().add_weeks(7));
+    /// println!("{}", Ntp::now().add_weeks(52));
+    /// ```
+    fn add_weeks(&self, weeks: i64) -> Self
+    where Self: Sized {
+        self.add_duration(weeks * 604800)
+    }
+
+    /// internal only
+    #[doc(hidden)]
+    fn from_epoch_offset(timestamp: u64, offset: i32) -> Self;
 }
 
 /// Implements the diff functions (optional)
@@ -296,6 +429,8 @@ pub trait StrTime {
 /// Provides wrappers on integer std types to parse into time structs, and also to pretty print timestamp integers
 ///
 /// Note: If there is an error, the function will return the Unix epoch time for the struct of choice
+/// 
+/// You can only convert from positive integers, as negative integers are not supported, as they cannot be represented in the time structs. While it would be possible to fix this, I don't think it is a needed feature at the moment.
 pub trait IntTime: std::fmt::Display + Into<u64> {
     /// Convert an integer into a time struct of choice
     ///
@@ -307,7 +442,7 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// ```
     fn unix<T: Time>(self) -> T {
         let unix: u64 = self.into();
-        T::from_epoch(unix + (OFFSET_1601 as u64))
+        T::from_epoch(unix + OFFSET_1601)
     }
 
     /// Convert an integer into a time struct of choice, from a Windows timestamp (100ns since `1601-01-01 00:00:00`)
@@ -359,8 +494,8 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// ```
     fn mac_os_cfa<T: Time>(self) -> T {
         let selfu64: u64 = self.into();
-        let unix: u64 = selfu64 + MAGIC_MAC_OS_CFA;
-        T::from_epoch((unix + (OFFSET_1601 as u64)) as u64)
+        let unix: u64 = selfu64 + MAGIC_MAC_OS_CFA as u64;
+        T::from_epoch(unix + OFFSET_1601)
     }
 
     /// Convert an integer into a time struct of choice, from a SAS 4GL timestamp (seconds since 1960-01-01 00:00:00)
@@ -504,5 +639,37 @@ mod test {
         let y = "2017-01-01T00:00:00.000Z".strp_rf3339::<System>();
         assert_eq!(x.unix(), 1483228800);
         assert_eq!(y.unix(), 1483228800);
+    }
+
+    #[test]
+    fn tz_tests() {
+        let x = System::now();
+        println!("{}", x.tz_offset());
+        println!("{}", x);
+        println!("{}", x.change_tz("+01:00"));
+        println!("{}", x.change_tz("-01:00"));
+    }
+
+    #[test]
+    fn test_add_duration() {
+        let x = System::now();
+        println!("{}", x.add_duration(3600));
+    } 
+
+    #[test]
+    fn test_add_minshoursdaysweeks() {
+        let x = System::now();
+        println!("{}", x.add_minutes(60));
+        println!("{}", x.add_hours(24));
+        println!("{}", x.add_days(7));
+        println!("{}", x.add_weeks(52));
+    }
+
+    #[test]
+    fn long_ago_dates() {
+        let x = System::from_epoch(0);
+        println!("{}", x);
+        println!("{}", x.unix());
+        println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
     }
 }
