@@ -23,6 +23,18 @@ impl Display for Ntp {
     }
 }
 
+impl Ntp {
+    /// Returns the server address used to get the time
+    pub fn server(&self) -> String {
+        self.server.to_string()
+    }
+
+    /// returns whether the data was fetched from a valid server (ie not strptime or chrono::Utc)
+    pub fn valid_server(&self) -> bool {
+        !vec!["chrono::Utc", "strptime"].contains(&self.server.as_str())
+    }
+}
+
 impl TimeDiff for Ntp {}
 
 impl Time for Ntp {
