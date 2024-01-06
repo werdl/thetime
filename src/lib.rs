@@ -17,6 +17,7 @@ pub mod system;
 pub mod timezones;
 
 
+use chrono::Local;
 /// export the ntp file for easier access
 pub use ntp::*;
 
@@ -284,6 +285,19 @@ pub trait Time {
 
 
         Self::from_epoch_offset((utc_self.raw() as i64 + (offset_seconds as i64 * 1000i64)) as u64, -duped_secs)
+    }
+
+    /// Changes the timezone offset of the time object to the local timezone
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{}", System::now().local());
+    /// println!("{}", Ntp::now().local());
+    /// ```
+    fn local(&self) -> Self
+    where Self: Sized {
+        self.change_tz(Local::now().format("%:z").to_string())
     }
 
     /// add an amount in seconds to a time object
@@ -751,5 +765,10 @@ mod test {
         let x = System::now();
         println!("{}", x.add_duration(std::time::Duration::from_secs(3600)));
         println!("{}", x.add_duration(chrono::Duration::seconds(3600)));
+    }
+    #[test]
+    fn test_local() {
+        let x = System::now();
+        println!("{}", x.local());
     }
 }
