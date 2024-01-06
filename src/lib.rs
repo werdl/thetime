@@ -49,6 +49,24 @@ pub fn now() -> i64 {
     Ntp::now().unix()
 }
 
+/// An enum to represent whether a time is in the past, present or future
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RelativeTime {
+    Past,
+    Present,
+    Future
+}
+
+impl core::fmt::Display for RelativeTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RelativeTime::Past => write!(f, "past"),
+            RelativeTime::Present => write!(f, "present"),
+            RelativeTime::Future => write!(f, "future"),
+        }
+    }
+}
+
 /// Implements the core functionality of the library
 /// 
 /// The conversion methods from struct to various timestamps do support negatives where needed (everything but `windows_ns` as it uses the same epoch as we do)
@@ -276,7 +294,7 @@ pub trait Time {
     /// println!("{}", System::now().add_seconds(3600));
     /// println!("{}", Ntp::now().add_seconds(3600));
     /// ```
-    fn add_duration(&self, duration: i64) -> Self
+    fn add_seconds(&self, duration: i64) -> Self
     where Self: Sized {
         Self::from_epoch((self.raw() as i64 + (duration * 1000)) as u64)
     }
@@ -291,7 +309,7 @@ pub trait Time {
     /// ```
     fn add_minutes(&self, minutes: i64) -> Self
     where Self: Sized {
-        self.add_duration(minutes * 60)
+        self.add_seconds(minutes * 60)
     }
 
     /// add an amount in hours to a time object
@@ -304,7 +322,7 @@ pub trait Time {
     /// ```
     fn add_hours(&self, hours: i64) -> Self
     where Self: Sized {
-        self.add_duration(hours * 3600)
+        self.add_seconds(hours * 3600)
     }
 
     /// add an amount in days to a time object
@@ -317,7 +335,7 @@ pub trait Time {
     /// ```
     fn add_days(&self, days: i64) -> Self
     where Self: Sized {
-        self.add_duration(days * 86400)
+        self.add_seconds(days * 86400)
     }
 
     /// add an amount in weeks to a time object
@@ -331,12 +349,60 @@ pub trait Time {
     /// ```
     fn add_weeks(&self, weeks: i64) -> Self
     where Self: Sized {
-        self.add_duration(weeks * 604800)
+        self.add_seconds(weeks * 604800)
+    }
+
+
+    /// determine whether a time object is in the past, present or future
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// let x = System::now();
+    /// let y = Ntp::now();
+    /// println!("{} is in the {}", x, x.past_future(&y));
+    /// println!("{} is in the {}", y, y.past_future(&x));
+    /// ```
+    fn past_future<T: Time>(&self, other: &T) -> RelativeTime {
+        if self.raw() < other.raw() {
+            RelativeTime::Past
+        } else if self.raw() > other.raw() {
+            RelativeTime::Future
+        } else {
+            RelativeTime::Present
+        }
+    }
+
+    /// add a duration to a time object
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time, ImplsDuration};
+    /// let x = System::now();
+    /// println!("{}", x.add_duration(chrono::Duration::seconds(3600)));
+    /// ```
+    fn add_duration<T: ImplsDuration>(&self, duration: T) -> Self
+        where Self: Sized {
+        self.add_seconds(duration.num_seconds())
     }
 
     /// internal only
     #[doc(hidden)]
     fn from_epoch_offset(timestamp: u64, offset: i32) -> Self;
+}
+
+pub trait ImplsDuration {
+    fn num_seconds(&self) -> i64;
+}
+impl ImplsDuration for chrono::Duration {
+    fn num_seconds(&self) -> i64 {
+        self.num_seconds()
+    }
+}
+impl ImplsDuration for std::time::Duration {
+    fn num_seconds(&self) -> i64 {
+        self.as_secs() as i64
+    }
 }
 
 /// Implements the diff functions (optional)
@@ -651,9 +717,9 @@ mod test {
     }
 
     #[test]
-    fn test_add_duration() {
+    fn test_add_seconds() {
         let x = System::now();
-        println!("{}", x.add_duration(3600));
+        println!("{}", x.add_seconds(3600));
     } 
 
     #[test]
@@ -671,5 +737,20 @@ mod test {
         println!("{}", x);
         println!("{}", x.unix());
         println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
+    }
+
+    #[test]
+    fn test_past_future() {
+        let x = "2029-01-01T00:00:00.000".strp_iso8601::<System>();
+        let y = Ntp::now();
+        println!("{} is in the {}", x, x.past_future(&y));
+        println!("{} is in the {}", y, y.past_future(&x));
+    }
+
+    #[test]
+    fn test_add_duration() {
+        let x = System::now();
+        println!("{}", x.add_duration(std::time::Duration::from_secs(3600)));
+        println!("{}", x.add_duration(chrono::Duration::seconds(3600)));
     }
 }
