@@ -503,12 +503,11 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// let actual = format!("2017 - {:?}", 1483228800u64.unix::<System>());
-    /// assert_eq!(actual, "2017 - System { inner_secs: 13127702400, inner_milliseconds: 400 }");
+    /// assert_eq!(1483228800u32.unix::<Ntp>().pretty(), "2017-01-01 00:00:00");
     /// ```
     fn unix<T: Time>(self) -> T {
         let unix: u64 = self.into();
-        T::from_epoch(unix + OFFSET_1601)
+        T::from_epoch((unix + OFFSET_1601) * 1000)
     }
 
     /// Convert an integer into a time struct of choice, from a Windows timestamp (100ns since `1601-01-01 00:00:00`)
@@ -516,11 +515,10 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// # Examples
     /// ```rust
     /// use thetime::{System, Ntp, Time, IntTime};
-    /// println!("2017 - {:#?}", 13127702400000000u64.windows_ns::<System>());
-    /// assert_eq!(131277024000000000u64.windows_ns::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2017-01-01 00:00:00");
+    /// assert_eq!(131277024000000000u64.windows_ns::<Ntp>().pretty(),"2017-01-01 00:00:00");
     /// ```
     fn windows_ns<T: Time>(self) -> T {
-        T::from_epoch(self.into() / (1e7 as u64))
+        T::from_epoch(self.into() / (1e4 as u64))
     }
 
     /// Convert an integer into a time struct of choice, from a Webkit timestamp (microseconds since `1601-01-01 00:00:00`)
@@ -532,7 +530,7 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     /// assert_eq!(13127702400000000u64.webkit::<System>().strftime("%Y-%m-%d %H:%M:%S"), "2017-01-01 00:00:00");
     /// ```
     fn webkit<T: Time>(self) -> T {
-        T::from_epoch(self.into() / (1e6 as u64))
+        T::from_epoch(self.into() / (1e3 as u64))
     }
 
     /// Convert an integer into a time struct of choice, from a Mac OS timestamp (seconds since 1904-01-01 00:00:00)
@@ -547,7 +545,7 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
         let selfu64: u64 = self.into();
         let selfi64: i64 = selfu64 as i64;
         let unix: i64 = selfi64 - (MAGIC_MAC_OS as i64);
-        T::from_epoch((unix + (OFFSET_1601 as i64)) as u64)
+        T::from_epoch((unix + (OFFSET_1601 as i64)) as u64 * 1000)
     }
 
     /// Convert an integer into a time struct of choice, from a Mac OS Absolute timestamp (seconds since 2001-01-01 00:00:00)
@@ -561,7 +559,7 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
     fn mac_os_cfa<T: Time>(self) -> T {
         let selfu64: u64 = self.into();
         let unix: u64 = selfu64 + MAGIC_MAC_OS_CFA as u64;
-        T::from_epoch(unix + OFFSET_1601)
+        T::from_epoch((unix + OFFSET_1601) * 1000)
     }
 
     /// Convert an integer into a time struct of choice, from a SAS 4GL timestamp (seconds since 1960-01-01 00:00:00)
@@ -576,7 +574,7 @@ pub trait IntTime: std::fmt::Display + Into<u64> {
         let selfu64: u64 = self.into();
         let selfi64: i64 = selfu64 as i64;
         let unix: i64 = selfi64 - (MAGIC_SAS_4GL as i64);
-        T::from_epoch((unix + (OFFSET_1601 as i64)) as u64)
+        T::from_epoch((unix + (OFFSET_1601 as i64)) as u64 * 1000)
     }
 
     /// Prints the time duration in a formatted string. Note that this only goes up to weeks, as years are rather subjective
@@ -663,8 +661,8 @@ mod test {
             "2017-01-01 00:00:00"
         );
         assert_eq!(
-            3787228612u32.mac_os::<Ntp>().pretty(),
-            "2024-01-04 15:56:52"
+            3787310789u64.mac_os::<Ntp>().pretty(),
+            "2024-01-05 14:46:29"
         );
         assert_eq!(
             726158877u32.mac_os_cfa::<Ntp>().pretty(),
