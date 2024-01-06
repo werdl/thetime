@@ -9,11 +9,10 @@ pub mod system;
 /// 
 /// # Examples
 /// ```
-/// use thetime::timezones;
-/// println!("{}", timezones::UTC);
-/// println!("{}", timezones::BST);
+/// use thetime::Tz;
+/// println!("{}", Tz::UtcWet);
+/// println!("{}", Tz::BST);
 /// ```
-
 pub mod timezones;
 
 
@@ -23,6 +22,9 @@ pub use ntp::*;
 
 /// export the system file for easier access
 pub use system::*;
+
+// export the timezones file for easier access
+pub use timezones::*;
 
 extern crate time;
 /// Reference time
@@ -255,6 +257,18 @@ pub trait Time {
         let hours = offset / 3600;
         let minutes = (offset % 3600) / 60;
         format!("{}{:02}:{:02}", sign, hours, minutes)
+    }
+
+    /// Represents the timezone as an enum
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// println!("{:?}", System::now().tz_enum());
+    /// println!("{:?}", Ntp::now().tz_enum());
+    /// ```
+    fn tz_enum(&self) -> Option<Tz> {
+        Tz::from_offset(-self.utc_offset())
     }
 
     /// Changes the timezone offset of the time object, where `offset` is in the form "+|-[0-5][0-9]:[0-5][0-9]"
@@ -770,5 +784,17 @@ mod test {
     fn test_local() {
         let x = System::now();
         println!("{}", x.local());
+    }
+
+    #[test]
+    fn test_tz_enum() {
+        let x = System::now().change_tz("+08:00");
+        println!("{}", x.tz_enum().unwrap_or_default());
+        println!("{}", Tz::from_offset(3600).unwrap_or_default());
+        println!("{}", Tz::from_offset(0).unwrap_or_default()); // Some(UtcWet)
+        println!("{}", Tz::from_offset(3600).unwrap_or_default()); // Some(BstCet)
+        println!("{}", Tz::from_offset(7200).unwrap_or_default()); // Some(CestEet)
+        println!("{}", Tz::from_offset(123456).unwrap_or_default()); // None
+        println!("{}", Tz::Acst.offset_struct(System::now()));
     }
 }
