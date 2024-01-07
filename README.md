@@ -1,6 +1,6 @@
 # thetime
 ## Simple Rust library for time
-- builds on top of std, chrono and time
+- builds on top of std (almost exclusively `core`), chrono and time
 - very simple and intuitive to use
 - wraps some very useful functions that are usually buried deep in modules
 - has extensive support for unusual epochs

@@ -421,7 +421,7 @@ pub trait Time {
     fn from_epoch_offset(timestamp: u64, offset: i32) -> Self;
 }
 
-/// A trait so that we can use chrono::Duration and std::time::Duration interchangeably in the `Time::add_duration` function
+/// A trait so that we can use chrono::Duration and core::time::Duration interchangeably in the `Time::add_duration` function
 pub trait ImplsDuration {
     fn num_seconds(&self) -> i64;
 }
@@ -432,7 +432,7 @@ impl ImplsDuration for chrono::Duration {
 }
 
 #[cfg(feature = "ntp")]
-impl ImplsDuration for std::time::Duration {
+impl ImplsDuration for core::time::Duration {
     fn num_seconds(&self) -> i64 {
         self.as_secs() as i64
     }

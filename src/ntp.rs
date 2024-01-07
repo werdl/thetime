@@ -1,13 +1,13 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use core::fmt::Display;
 use std::net::UdpSocket;
-use std::time::Duration;
+use core::time::Duration;
 
 use crate::{Time, TimeDiff, OFFSET_1601, REF_TIME_1970};
 
 /// NTP time
 ///
-/// `inner_secs` is the time as seconds since `1601-01-01 00:00:00`, from `std::time`
+/// `inner_secs` is the time as seconds since `1601-01-01 00:00:00`, from `chrono::Utc`
 /// `inner_milliseconds` is the subsec milliseconds
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ntp {
