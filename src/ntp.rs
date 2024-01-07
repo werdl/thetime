@@ -1,9 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use core::fmt::Display;
-#[cfg(feature = "ntp")]
-extern crate std;
 use std::net::UdpSocket;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use crate::{Time, TimeDiff, OFFSET_1601, REF_TIME_1970};
 
@@ -21,7 +19,7 @@ pub struct Ntp {
 
 impl Display for Ntp {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:#?}", self)
+        write!(f, "{}", self.pretty())
     }
 }
 
@@ -80,19 +78,14 @@ impl Time for Ntp {
         };
         Ntp {
             inner_secs: (x.timestamp() + (OFFSET_1601 as i64)) as u64,
-            inner_milliseconds: x.timestamp_millis() as u64,
+            inner_milliseconds: x.timestamp_subsec_millis() as u64,
             server: "strptime".to_string(),
             utc_offset: x.offset().local_minus_utc() as i32,
         }
     }
 
     fn strftime(&self, format: &str) -> String {
-        let timestamp = if self.inner_secs >= OFFSET_1601 {
-            (self.inner_secs - OFFSET_1601) as i64
-        } else {
-            -((OFFSET_1601 as i64) - (self.inner_secs as i64))
-        };
-        NaiveDateTime::from_timestamp_opt(timestamp, 0)
+        NaiveDateTime::from_timestamp_opt(self.inner_secs as i64 - OFFSET_1601 as i64, 0)
             .unwrap()
             .format(format)
             .to_string()
@@ -129,7 +122,7 @@ fn new<T: ToString>(server_addr: T) -> Result<Ntp, Box<dyn std::error::Error>> {
     let mut data = vec![0x1b];
     data.extend(vec![0; 47]); // ping
 
-    let start_time = SystemTime::now();
+    let start_time = Utc::now().timestamp_millis();
     client.send_to(&data, format!("{}:123", server))?;
 
     let mut buffer = [0; 1024];
@@ -139,8 +132,8 @@ fn new<T: ToString>(server_addr: T) -> Result<Ntp, Box<dyn std::error::Error>> {
         let t = u32::from_be_bytes([buffer[40], buffer[41], buffer[42], buffer[43]]) as u64;
         let t = t - REF_TIME_1970;
 
-        let elapsed_time = start_time.elapsed()?;
-        let milliseconds = elapsed_time.as_secs() * 1000 + u64::from(elapsed_time.subsec_millis());
+        let elapsed_time = start_time - Utc::now().timestamp_millis();
+        let milliseconds = (elapsed_time % 1000).try_into().unwrap_or(0);
 
         return Ok(Ntp {
             server: server.to_string(),

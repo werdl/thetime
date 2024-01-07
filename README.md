@@ -4,6 +4,7 @@
 - very simple and intuitive to use
 - wraps some very useful functions that are usually buried deep in modules
 - has extensive support for unusual epochs
+- Supports any date from 1601-01-01 to 
 ## Which traits you need
 ```rust
 // Basic functionality
@@ -19,7 +20,7 @@ use thetime::{System, Ntp, Time, StrTime};
 use thetime::{System, Ntp, Time, IntTime}
 
 // Timezones
-use thetime::timezones;
+use thetime::Tz;
 ```
 ## Utilities provided
 - full docs at [docs.rs/thetime](https://docs.rs/thetime)
@@ -37,4 +38,4 @@ use thetime::timezones;
 > - 01-01-1601 (Windows, measured in 100ns chunks)
 > - 01-01-1960 (SAS 4GL)
 > - 01-01-1601 (Webkit, measured in μs)
-- Fully supports without overflow, as the core data is stored as seconds and milliseconds since 01-01-1601
+- Fully supports without overflow, as the core data is stored as `u64`s, times since 01-01-1601, and up to, in my testing, "+262143-01-01".

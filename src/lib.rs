@@ -431,6 +431,7 @@ impl ImplsDuration for chrono::Duration {
     }
 }
 
+#[cfg(feature = "ntp")]
 impl ImplsDuration for std::time::Duration {
     fn num_seconds(&self) -> i64 {
         self.as_secs() as i64
@@ -656,20 +657,21 @@ mod test {
     #[test]
     fn test_ntp() {
         let x = Ntp::now();
-        println!("{}", x);
+        println!("{:#?}", x);
         println!("{}", x.unix_ms());
-        println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
+        println!("{}", x);
     }
 
     #[test]
     fn strptime() {
-        let x = System::strptime("2015-02-18 23:16:09", "%Y-%m-%d %H:%M:%S");
+        let x = System::strptime("2015-02-18 23:16:09.234", "%Y-%m-%d %H:%M:%S%.3f");
         println!("2015 - {}", x);
         #[cfg(feature = "ntp")]
         {
             let x = Ntp::strptime("2021-01-01 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z");
             println!("2021 - {}", x);
             assert_eq!(x.unix(), 1609459200);
+            println!("1950 - {}", Ntp::strptime("1950-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
         }
     }
 
@@ -803,8 +805,10 @@ mod test {
     #[test]
     fn test_add_duration() {
         let x = System::now();
-
+        
+        #[cfg(feature = "ntp")]
         println!("{}", x.add_duration(std::time::Duration::from_secs(3600)));
+
         println!("{}", x.add_duration(chrono::Duration::seconds(3600)));
     }
     #[test]
@@ -823,5 +827,11 @@ mod test {
         println!("{}", Tz::from_offset(7200).unwrap_or_default()); // Some(CestEet)
         println!("{}", Tz::from_offset(123456).unwrap_or_default()); // None
         println!("{}", Tz::Acst.offset_struct(System::now()));
+    }
+
+    #[test]
+    fn huge_number() {
+        let x = System::strptime("+262143-01-01 00:00:00", "%Y-%m-%d %H:%M:%S");
+        println!("{}", x);
     }
 }
