@@ -431,7 +431,6 @@ impl ImplsDuration for chrono::Duration {
     }
 }
 
-#[cfg(feature = "std")]
 impl ImplsDuration for std::time::Duration {
     fn num_seconds(&self) -> i64 {
         self.as_secs() as i64
@@ -804,6 +803,7 @@ mod test {
     #[test]
     fn test_add_duration() {
         let x = System::now();
+
         println!("{}", x.add_duration(std::time::Duration::from_secs(3600)));
         println!("{}", x.add_duration(chrono::Duration::seconds(3600)));
     }
