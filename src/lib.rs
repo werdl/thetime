@@ -1,5 +1,4 @@
 /// re-exported for easier access (no `use thetime::ntp::System;`, just `use thetime::System;`)
-#[cfg(feature = "ntp")]
 pub mod ntp;
 
 /// re-exported for easier access (no `use thetime::system::System;`, just `use thetime::System;`)
@@ -16,10 +15,17 @@ pub mod system;
 /// ```
 pub mod timezones;
 
+pub mod epoch {
+    pub const UNIX: &str = "1970-01-01 00:00:00";
+    pub const WINDOWS_NT: &str = "1601-01-01 00:00:00";
+    pub const WEBKIT: &str = "1601-01-01 00:00:00";
+    pub const MAC_OS: &str = "1904-01-01 00:00:00";
+    pub const MAC_OS_CFA: &str = "2001-01-01 00:00:00";
+    pub const SAS_4GL: &str = "1960-01-01 00:00:00";
+}
 
 use chrono::Local;
 /// export the ntp file for easier access
-#[cfg(feature = "ntp")]
 pub use ntp::*;
 
 /// export the system file for easier access
@@ -394,6 +400,7 @@ pub trait Time {
     /// println!("{} is in the {}", y, y.past_future(&x));
     /// ```
     fn past_future<T: Time>(&self, other: &T) -> RelativeTime {
+        #[allow(clippy::comparison_chain)] // this is a false positive: we don't want to use a match statement here
         if self.raw() < other.raw() {
             RelativeTime::Past
         } else if self.raw() > other.raw() {
@@ -416,6 +423,19 @@ pub trait Time {
         self.add_seconds(duration.num_seconds())
     }
 
+    /// cast a time object to another time object
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use thetime::{System, Ntp, Time};
+    /// let x = System::now();
+    /// println!("{}", x.cast::<Ntp>());
+    /// ```
+    fn cast<T: Time>(&self) -> T
+    where Self: Sized {
+        T::from_epoch(self.raw())
+    }
+
     /// internal only
     #[doc(hidden)]
     fn from_epoch_offset(timestamp: u64, offset: i32) -> Self;
@@ -431,7 +451,6 @@ impl ImplsDuration for chrono::Duration {
     }
 }
 
-#[cfg(feature = "ntp")]
 impl ImplsDuration for core::time::Duration {
     fn num_seconds(&self) -> i64 {
         self.as_secs() as i64
@@ -577,7 +596,7 @@ pub trait IntTime: core::fmt::Display + Into<u64> {
     fn mac_os<T: Time>(self) -> T {
         let selfu64: u64 = self.into();
         let selfi64: i64 = selfu64 as i64;
-        let unix: i64 = selfi64 - (MAGIC_MAC_OS as i64);
+        let unix: i64 = selfi64 - MAGIC_MAC_OS;
         T::from_epoch((unix + (OFFSET_1601 as i64)) as u64 * 1000)
     }
 
@@ -606,7 +625,7 @@ pub trait IntTime: core::fmt::Display + Into<u64> {
     fn sas_4gl<T: Time>(self) -> T {
         let selfu64: u64 = self.into();
         let selfi64: i64 = selfu64 as i64;
-        let unix: i64 = selfi64 - (MAGIC_SAS_4GL as i64);
+        let unix: i64 = selfi64 - MAGIC_SAS_4GL;
         T::from_epoch((unix + (OFFSET_1601 as i64)) as u64 * 1000)
     }
 
@@ -653,7 +672,6 @@ mod test {
         println!("{}", x.strftime("%Y-%m-%d %H:%M:%S"));
     }
 
-    #[cfg(feature = "ntp")]
     #[test]
     fn test_ntp() {
         let x = Ntp::now();
@@ -666,13 +684,10 @@ mod test {
     fn strptime() {
         let x = System::strptime("2015-02-18 23:16:09.234", "%Y-%m-%d %H:%M:%S%.3f");
         println!("2015 - {}", x);
-        #[cfg(feature = "ntp")]
-        {
-            let x = Ntp::strptime("2021-01-01 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z");
-            println!("2021 - {}", x);
-            assert_eq!(x.unix(), 1609459200);
-            println!("1950 - {}", Ntp::strptime("1950-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
-        }
+        let x = Ntp::strptime("2021-01-01 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z");
+        println!("2021 - {}", x);
+        assert_eq!(x.unix(), 1609459200);
+        println!("1950 - {}", Ntp::strptime("1950-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
     }
 
     #[test]
@@ -691,7 +706,6 @@ mod test {
         assert_eq!(x.diff(&y), 63158400u64);
     }
 
-    #[cfg(feature = "ntp")]
     #[test]
     fn int_ntp_time() {
         assert_eq!(1483228800u32.unix::<Ntp>().pretty(), "2017-01-01 00:00:00");
@@ -806,7 +820,6 @@ mod test {
     fn test_add_duration() {
         let x = System::now();
         
-        #[cfg(feature = "ntp")]
         println!("{}", x.add_duration(std::time::Duration::from_secs(3600)));
 
         println!("{}", x.add_duration(chrono::Duration::seconds(3600)));
@@ -833,5 +846,11 @@ mod test {
     fn huge_number() {
         let x = System::strptime("+262143-01-01 00:00:00", "%Y-%m-%d %H:%M:%S");
         println!("{}", x);
+    }
+
+    #[test]
+    fn test_cast() {
+        let x = System::now();
+        println!("{:#?}", x.cast::<Ntp>());
     }
 }

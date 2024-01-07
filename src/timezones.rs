@@ -219,7 +219,7 @@ impl Tz {
     }
 
     pub fn from_offset_str(offset: &str) -> Option<Self> {
-        let offset = offset.split(":").collect::<Vec<&str>>().into_iter().map(|x| x.parse::<i32>().unwrap_or(0)).collect::<Vec<i32>>();
+        let offset = offset.split(':').collect::<Vec<&str>>().into_iter().map(|x| x.parse::<i32>().unwrap_or(0)).collect::<Vec<i32>>();
         Self::from_offset((offset[0] * 3600) + (offset[1] * 60))
     }
 

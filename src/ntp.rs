@@ -31,7 +31,7 @@ impl Ntp {
 
     /// returns whether the data was fetched from a valid server (ie not strptime or chrono::Utc)
     pub fn valid_server(&self) -> bool {
-        !vec!["chrono::Utc", "strptime"].contains(&self.server.as_str())
+        !["chrono::Utc", "strptime"].contains(&self.server.as_str())
     }
 }
 
