@@ -1,5 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use core::fmt::Display;
+#[cfg(feature = "ntp")]
+extern crate std;
 use std::net::UdpSocket;
 use std::time::{Duration, SystemTime};
 
@@ -18,7 +20,7 @@ pub struct Ntp {
 }
 
 impl Display for Ntp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:#?}", self)
     }
 }

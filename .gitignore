@@ -2,3 +2,4 @@
 Cargo.lock
 doc_comments.txt
 generate_examples
+.vscode/*

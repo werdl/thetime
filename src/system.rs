@@ -4,7 +4,7 @@ use core::fmt::Display;
 
 /// System time, as grabbed from the system (obviously). Its timezone is dependent on the system's timezone as configured in the BIOS
 ///
-/// `inner_secs` is the time as seconds since `1601-01-01 00:00:00`, from `std::time`
+/// `inner_secs` is the time as seconds since `1601-01-01 00:00:00`, from `chrono::Local`
 /// `inner_milliseconds` is the subsec milliseconds
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct System {
@@ -14,7 +14,7 @@ pub struct System {
 }
 
 impl Display for System {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.strftime("%Y-%m-%d %H:%M:%S"))
     }
 }
