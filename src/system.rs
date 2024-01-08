@@ -1,12 +1,13 @@
 use crate::{Time, TimeDiff, OFFSET_1601};
 use chrono::{DateTime, NaiveDateTime, Local};
 use core::fmt::Display;
+use serde::{Deserialize, Serialize};
 
 /// System time, as grabbed from the system (obviously). Its timezone is dependent on the system's timezone as configured in the BIOS
 ///
 /// `inner_secs` is the time as seconds since `1601-01-01 00:00:00`, from `chrono::Local`
 /// `inner_milliseconds` is the subsec milliseconds
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct System {
     inner_secs: u64,
     inner_milliseconds: u64,

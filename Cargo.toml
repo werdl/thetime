@@ -1,6 +1,6 @@
 [package]
 name = "thetime"
-version = "0.5.4"
+version = "0.5.5"
 edition = "2021"
 license = "Apache-2.0"
 description = "A simple but powerful Rust library for dealing with the time, both NTP and System. Contains wrappers for functions often buried in modules. Has extensive support for unusual epochs (Windows LDAP 100ns, MacOS and MacOS CFA, SAS 4GL, WebKit and Chromium 1μs). Supports timezone conversion, and addition/subtraction of various amounts"
@@ -12,3 +12,4 @@ categories = ["date-and-time", "localization", "network-programming"]
 
 [dependencies]
 chrono = {"version" = "0.4.31", default-features = false, features = ["clock"]} # need clock to get local times
+serde = {version = "1.0.130", features = ["derive"]}

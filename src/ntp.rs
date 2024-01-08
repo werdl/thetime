@@ -9,7 +9,7 @@ use crate::{Time, TimeDiff, OFFSET_1601, REF_TIME_1970};
 ///
 /// `inner_secs` is the time as seconds since `1601-01-01 00:00:00`, from `chrono::Utc`
 /// `inner_milliseconds` is the subsec milliseconds
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Ntp {
     inner_secs: u64,
     inner_milliseconds: u64,
@@ -40,7 +40,7 @@ impl TimeDiff for Ntp {}
 impl Time for Ntp {
     /// Note - there is a chance that this function fails, in which case we use the System time as a failsafe
     fn now() -> Self {
-        match new("pool.ntp.org") {
+        match Ntp::new("pool.ntp.org") {
             Ok(x) => x,
             Err(_) => {
                 let now = Utc::now();
@@ -114,34 +114,46 @@ impl Time for Ntp {
     }
 }
 
-fn new<T: ToString>(server_addr: T) -> Result<Ntp, Box<dyn std::error::Error>> {
-    let server = server_addr.to_string();
-    let client = UdpSocket::bind("0.0.0.0:0")?;
-    client.set_read_timeout(Some(Duration::from_secs(5)))?;
 
-    let mut data = vec![0x1b];
-    data.extend(vec![0; 47]); // ping
-
-    let start_time = Utc::now().timestamp_millis();
-    client.send_to(&data, format!("{}:123", server))?;
-
-    let mut buffer = [0; 1024];
-    let (size, _) = client.recv_from(&mut buffer)?;
-
-    if size > 0 {
-        let t = u32::from_be_bytes([buffer[40], buffer[41], buffer[42], buffer[43]]) as u64;
-        let t = t - REF_TIME_1970;
-
-        let elapsed_time = start_time - Utc::now().timestamp_millis();
-        let milliseconds = (elapsed_time % 1000).try_into().unwrap_or(0);
-
-        return Ok(Ntp {
-            server: server.to_string(),
-            inner_secs: (t) + OFFSET_1601,
-            inner_milliseconds: milliseconds,
-            utc_offset: 0,
-        });
+impl Ntp {
+    /// Fetches the time from an NTP server
+    /// 
+    /// # Example
+    /// ```
+    /// use thetime::Ntp;
+    /// let ntp = Ntp::new("pool.ntp.org").unwrap();
+    /// println!("{}", ntp);
+    /// ```
+    pub fn new<T: ToString>(server_addr: T) -> Result<Ntp, Box<dyn std::error::Error>> {
+        let server = server_addr.to_string();
+        let client = UdpSocket::bind("0.0.0.0:0")?;
+        client.set_read_timeout(Some(Duration::from_secs(5)))?;
+    
+        let mut data = vec![0x1b];
+        data.extend(vec![0; 47]); // ping
+    
+        let start_time = Utc::now().timestamp_millis();
+        client.send_to(&data, format!("{}:123", server))?;
+    
+        let mut buffer = [0; 1024];
+        let (size, _) = client.recv_from(&mut buffer)?;
+    
+        if size > 0 {
+            let t = u32::from_be_bytes([buffer[40], buffer[41], buffer[42], buffer[43]]) as u64;
+            let t = t - REF_TIME_1970;
+    
+            let elapsed_time = start_time - Utc::now().timestamp_millis();
+            let milliseconds = (elapsed_time % 1000).try_into().unwrap_or(0);
+    
+            return Ok(Ntp {
+                server: server.to_string(),
+                inner_secs: (t) + OFFSET_1601,
+                inner_milliseconds: milliseconds,
+                utc_offset: 0,
+            });
+        }
+    
+        Err("Failed to receive NTP response".into())
     }
-
-    Err("Failed to receive NTP response".into())
+    
 }
