@@ -2,6 +2,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use core::fmt::Display;
 use std::net::UdpSocket;
 use core::time::Duration;
+use serde::{Deserialize, Serialize};
 
 use crate::{Time, TimeDiff, OFFSET_1601, REF_TIME_1970};
 
