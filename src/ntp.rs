@@ -107,7 +107,7 @@ impl Time for Ntp {
 
     fn from_epoch_offset(timestamp: u64, offset: i32) -> Self {
         Ntp {
-            inner_secs: timestamp,
+            inner_secs: timestamp / 1000,
             inner_milliseconds: timestamp % 1000,
             server: "from_epoch_offset".to_string(),
             utc_offset: offset,

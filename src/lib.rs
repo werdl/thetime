@@ -778,9 +778,10 @@ mod test {
 
     #[test]
     fn tz_tests() {
-        let x = System::now();
-        println!("{}", x.tz_offset());
-        println!("{}", x);
+        let x = Ntp::now();
+        // println!("{}", x.tz_offset());
+        // println!("{}", x);
+        println!("{:#?}", x);
         println!("{}", x.change_tz("+01:00"));
         println!("{}", x.change_tz("-01:00"));
     }
